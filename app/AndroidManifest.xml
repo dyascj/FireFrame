@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.fireframe.home" android:versionCode="4" android:versionName="1.1.1">
+    package="com.fireframe.home" android:versionCode="5" android:versionName="1.1.2">
     <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="34" />
     <!-- Android 11+ only shows a launcher the apps it asks for. -->
     <queries>
