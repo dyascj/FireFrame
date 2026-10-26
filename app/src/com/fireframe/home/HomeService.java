@@ -22,6 +22,9 @@ import android.view.accessibility.AccessibilityWindowInfo;
 //  3. An app picked on the overlay in those 5 seconds would be held back too. So FireFrame presses
 //     that app's tile on Amazon's launcher, hidden behind the overlay: Amazon's launches aren't held.
 public class HomeService extends AccessibilityService {
+    static boolean isSettingsPackage(String p) {
+        return p != null && (p.startsWith("com.amazon.tv.settings") || p.equals("com.android.settings"));
+    }
     static final String AMAZON_HOME = "com.amazon.tv.launcher";
     static final int SHOWN = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_FULLSCREEN;
     static final int HIDDEN = SHOWN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
@@ -43,7 +46,10 @@ public class HomeService extends AccessibilityService {
     // Amazon's launcher sends this, unguarded, from its own goHome. It can reach us a little before the
     // launcher's window has drawn, so we cover sooner than the accessibility event alone would let us.
     final BroadcastReceiver homePressed = new BroadcastReceiver() {
-        @Override public void onReceive(Context c, Intent i) { cover(); }
+        @Override public void onReceive(Context c, Intent i) {
+            pausedUntil = 0;
+            cover();
+        }
     };
 
     static boolean paused() {
@@ -108,10 +114,9 @@ public class HomeService extends AccessibilityService {
         if (pkg == null) return;
         String p = pkg.toString();
         if (p.equals(AMAZON_HOME)) {
-           
             cover();
         } else if (!IGNORED.contains(p) && !p.equals(getPackageName())) {
-            pausedUntil = 0; // another app opened
+            if (!isSettingsPackage(p)) pausedUntil = 0; // another app opened
             if (showing) {
                 // Let the app have the remote now, but keep covering until it has drawn its first frame.
                 setFocusable(false);

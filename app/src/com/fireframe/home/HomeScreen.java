@@ -500,6 +500,8 @@ public class HomeScreen extends FrameLayout {
         if (update != null) items.add("Update to FireFrame " + update);
         menu(anchor, items.toArray(new String[0]), which -> {
             if (which == 0) {
+                HomeService.pausedUntil = SystemClock.elapsedRealtime() + 10 * 60 * 1000;
+                HomeService.hideOverlay();
                 start(new Intent(Settings.ACTION_SETTINGS));
             } else if (update != null && which == items.size() - 1) {
                 showCaption("Downloading FireFrame " + update + "…");
@@ -510,6 +512,7 @@ public class HomeScreen extends FrameLayout {
                 Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
                         .setPackage(HomeService.AMAZON_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 if (!start(home)) showCaption("Amazon's home screen isn't available");
+                else if (ctx instanceof android.app.Activity) ((android.app.Activity) ctx).finish();
             }
         });
     }
