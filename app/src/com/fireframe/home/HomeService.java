@@ -22,9 +22,6 @@ import android.view.accessibility.AccessibilityWindowInfo;
 //  3. An app picked on the overlay in those 5 seconds would be held back too. So FireFrame presses
 //     that app's tile on Amazon's launcher, hidden behind the overlay: Amazon's launches aren't held.
 public class HomeService extends AccessibilityService {
-    static boolean isSettingsPackage(String p) {
-        return p != null && (p.startsWith("com.amazon.tv.settings") || p.equals("com.android.settings"));
-    }
     static final String AMAZON_HOME = "com.amazon.tv.launcher";
     static final int SHOWN = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_FULLSCREEN;
     static final int HIDDEN = SHOWN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
@@ -33,7 +30,8 @@ public class HomeService extends AccessibilityService {
     static final java.util.Set<String> IGNORED = new java.util.HashSet<>(java.util.Arrays.asList(
             "android", "com.android.systemui", "com.amazon.tv.ime"));
 
-    // "Amazon home screen" in FireFrame's settings menu pauses all this until another app opens.
+    // "Amazon home screen" and "Fire TV settings" in FireFrame's settings menu pause all this until
+    // Home is pressed or another app opens. Settings can pass through Amazon's launcher, so it doesn't count.
     static long pausedUntil;
     static HomeService running;
 
@@ -51,6 +49,10 @@ public class HomeService extends AccessibilityService {
             cover();
         }
     };
+
+    static boolean isSettingsPackage(String p) {
+        return p.startsWith("com.amazon.tv.settings") || p.equals("com.android.settings");
+    }
 
     static boolean paused() {
         return SystemClock.elapsedRealtime() < pausedUntil;

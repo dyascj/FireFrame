@@ -1,6 +1,7 @@
 package com.fireframe.home;
 
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -512,7 +513,7 @@ public class HomeScreen extends FrameLayout {
                 Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
                         .setPackage(HomeService.AMAZON_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 if (!start(home)) showCaption("Amazon's home screen isn't available");
-                else if (ctx instanceof android.app.Activity) ((android.app.Activity) ctx).finish();
+                else if (ctx instanceof Activity) ((Activity) ctx).finish();
             }
         });
     }
