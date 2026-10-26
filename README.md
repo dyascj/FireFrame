@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/icon.svg" width="128" alt="FireFrame">
+
 # FireFrame
 
 ### A clean, ad-free home screen for the Amazon Fire TV Stick. No root.
