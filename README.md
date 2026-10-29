@@ -58,7 +58,7 @@ Measured on a Fire TV Stick HD (AFTSS), Fire OS 7.7.1.4, which has 900 MB of usa
 
 | Device | Fire OS | Works? |
 | --- | --- | --- |
-| Fire TV Stick HD, Lite, 3rd gen, 4K (1st gen), 4K Max (1st gen), Cube | Fire OS 7 | Yes. Tested on Fire TV Stick HD, Fire OS 7.7.1.4. |
+| Fire TV Stick HD, Lite, 3rd gen, 4K (1st gen), 4K Max (1st gen), Cube | Fire OS 7 | Yes. Tested on Fire TV Stick HD, Fire OS 7.7.1.4, and reported working on 4K Max (1st gen), Fire OS 7.7.1.3. |
 | Fire TV Stick 4K (2nd gen), 4K Max (2nd gen), newer Cubes | Fire OS 8 | Should work. Not tested yet, reports welcome. |
 | Fire TV Stick 4K Select and other Vega OS devices | Vega OS | No. Vega OS can't install Android apps. |
 | Android TV, Google TV, Chromecast with Google TV | Android | Yes, as a normal launcher. Pick it as the default home screen. |
