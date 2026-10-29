@@ -24,7 +24,6 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
-import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
@@ -46,7 +45,9 @@ import android.view.WindowManager;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -141,6 +142,8 @@ public class HomeScreen extends FrameLayout {
     static int dockVersion;
     static int lastDock; // the dock app last focused, in either copy
     int seenDockVersion = -1;
+    static int photoVersion; // bumped when fireframe.sh wallpaper sends a new photo
+    int seenPhotoVersion;
 
     // The wallpaper and its blur, shared by the app and the overlay so they're decoded once.
     static String cachedKey;
@@ -253,11 +256,21 @@ public class HomeScreen extends FrameLayout {
         super.onDetachedFromWindow();
     }
 
-    // fireframe.sh wallpaper starts the app with --es wallpaper custom (or a bundled name).
+    // fireframe.sh wallpaper starts the app with --es wallpaper custom (or a bundled name), and
+    // --es from <photo in /data/local/tmp>: since Android 11 adb can't write into the app's folder.
     void applyExtras(Intent intent) {
         String w = intent == null ? null : intent.getStringExtra("wallpaper");
+        String from = intent == null ? null : intent.getStringExtra("from");
+        if (from != null && customWallpaper() != null) {
+            try (InputStream in = new FileInputStream(from); OutputStream out = new FileOutputStream(customWallpaper())) {
+                byte[] buf = new byte[65536];
+                for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+            } catch (Exception e) {
+                return;
+            }
+        }
         if (w == null || !choices().contains(w)) return;
-        if (CUSTOM.equals(w)) cachedKey = null; // a new photo under the same name
+        if (CUSTOM.equals(w)) { cachedKey = null; photoVersion++; } // a new photo under the same name
         prefs.edit().putString("wallpaper", w).apply();
     }
 
@@ -267,7 +280,7 @@ public class HomeScreen extends FrameLayout {
     void onShown(boolean reset) {
         Updater.check(ctx, () -> showCaption("FireFrame " + Updater.available(ctx) + " is out. Update it from Settings, top right."));
         if (reset) while (!layers.isEmpty()) closeLayer();
-        if (!wallpaperKey().equals(shownWallpaper)) showWallpaper(wallpaperKey());
+        if (!wallpaperKey().equals(shownWallpaper) || seenPhotoVersion != photoVersion) showWallpaper(wallpaperKey());
         if ((appsChanged || seenDockVersion != dockVersion) && layers.isEmpty()) buildDock();
         if (!layers.isEmpty() || dockRow.getChildCount() == 0) return;
         View f = findFocus();
@@ -501,15 +514,15 @@ public class HomeScreen extends FrameLayout {
         if (update != null) items.add("Update to FireFrame " + update);
         menu(anchor, items.toArray(new String[0]), which -> {
             if (which == 0) {
-                HomeService.pausedUntil = SystemClock.elapsedRealtime() + 10 * 60 * 1000;
-                HomeService.hideOverlay();
-                start(new Intent(Settings.ACTION_SETTINGS));
+                HomeService.pause(true);
+                // Amazon's own settings screen. Settings.ACTION_SETTINGS goes through Amazon's home screen on Fire OS 7 and 8.
+                if (!start(new Intent(Intent.ACTION_MAIN).addCategory("android.intent.category.LEANBACK_SETTINGS")
+                        .setPackage(HomeService.AMAZON_HOME))) start(new Intent(Settings.ACTION_SETTINGS));
             } else if (update != null && which == items.size() - 1) {
                 showCaption("Downloading FireFrame " + update + "…");
                 Updater.install(ctx, () -> showCaption("Couldn't download the update. Check the Wi-Fi and try again."));
             } else {
-                HomeService.pausedUntil = SystemClock.elapsedRealtime() + 10 * 60 * 1000;
-                HomeService.hideOverlay();
+                HomeService.pause(false);
                 Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
                         .setPackage(HomeService.AMAZON_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 if (!start(home)) showCaption("Amazon's home screen isn't available");
@@ -659,6 +672,7 @@ public class HomeScreen extends FrameLayout {
     // Decoding a photo takes a moment on a Fire TV Stick, so it happens off the UI thread.
     void showWallpaper(final String key) {
         shownWallpaper = key;
+        seenPhotoVersion = photoVersion;
         if (key.equals(cachedKey) && cachedPhoto != null) {
             wallView.setImageBitmap(cachedPhoto);
             blur = cachedBlur;

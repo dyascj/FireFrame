@@ -122,9 +122,13 @@ wallpaper)
   if command -v magick >/dev/null; then magick "$3" -resize '1920x1080^' -quality 85 "$tmp"
   elif command -v sips >/dev/null; then cp "$3" "$tmp"; sips -Z 1920 "$tmp" >/dev/null
   else cp "$3" "$tmp"; fi
-  tv am start -n $PKG/.MainActivity >/dev/null 2>&1 # makes the app's folder if it's new
-  "$ADB" -s "$IP" push "$tmp" /sdcard/Android/data/$PKG/files/wallpaper.jpg >/dev/null
-  tv am start -n $PKG/.MainActivity --es wallpaper custom >/dev/null 2>&1
+  # Since Android 11 adb can't write into the app's folder, so the app copies the photo in from here.
+  TVTMP=/data/local/tmp/fireframe-wallpaper.jpg
+  "$ADB" -s "$IP" push "$tmp" $TVTMP >/dev/null
+  tv chmod 644 $TVTMP
+  tv am start -W -n $PKG/.MainActivity --es from $TVTMP --es wallpaper custom >/dev/null 2>&1
+  sleep 1 # -W doesn't wait when the app is already in front
+  tv rm -f $TVTMP
   echo "Wallpaper set. The picture button on FireFrame switches between it and the built-in ones."
   ;;
 
