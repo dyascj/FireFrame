@@ -32,7 +32,9 @@ public class HomeService extends AccessibilityService {
 
     // "Amazon home screen" and "Fire TV settings" in FireFrame's settings menu pause all this until
     // Home is pressed or another app opens. Settings can pass through Amazon's launcher, so it doesn't count.
-    static long pausedUntil;
+    // Leaving settings for Amazon's home screen ends the pause too.
+    static long pausedUntil, ignoreHomeUntil;
+    static boolean forSettings, settingsShown;
     static HomeService running;
 
     WindowManager wm;
@@ -45,10 +47,21 @@ public class HomeService extends AccessibilityService {
     // launcher's window has drawn, so we cover sooner than the accessibility event alone would let us.
     final BroadcastReceiver homePressed = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
+            // The launcher sends it when FireFrame opens Amazon's home screen, too: that isn't Home.
+            if (SystemClock.elapsedRealtime() < ignoreHomeUntil) return;
             pausedUntil = 0;
             cover();
         }
     };
+
+    static void pause(boolean settings) {
+        long now = SystemClock.elapsedRealtime();
+        pausedUntil = now + 10 * 60 * 1000;
+        ignoreHomeUntil = now + 2000;
+        forSettings = settings;
+        settingsShown = false;
+        hideOverlay();
+    }
 
     static boolean isSettingsPackage(String p) {
         return p.startsWith("com.amazon.tv.settings") || p.equals("com.android.settings");
@@ -116,6 +129,13 @@ public class HomeService extends AccessibilityService {
         if (pkg == null) return;
         String p = pkg.toString();
         if (p.equals(AMAZON_HOME)) {
+            // Fire TV's settings screens live in Amazon's launcher: never cover them.
+            String cls = String.valueOf(e.getClassName());
+            if (cls.contains("Settings")) {
+                if (forSettings) settingsShown = true;
+                return;
+            }
+            if (settingsShown && cls.contains("HomeActivity")) pausedUntil = 0; // Back out of settings
             cover();
         } else if (!IGNORED.contains(p) && !p.equals(getPackageName())) {
             if (!isSettingsPackage(p)) pausedUntil = 0; // another app opened
