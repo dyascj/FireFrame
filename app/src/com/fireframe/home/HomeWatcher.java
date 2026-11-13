@@ -65,11 +65,16 @@ public class HomeWatcher extends Service {
         @Override public void onReceive(Context c, Intent i) {
             if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(i.getAction())
                     && !"homekey".equals(i.getStringExtra("reason"))) return;
-            if (SystemClock.elapsedRealtime() < HomeService.ignoreHomeUntil) return;
-            HomeService.pausedUntil = 0;
-            cover();
+            homePressed();
         }
     };
+
+    void homePressed() {
+        // FireFrame's own "Amazon home screen" opens it the way Home does: that isn't Home.
+        if (SystemClock.elapsedRealtime() < HomeService.ignoreHomeUntil) return;
+        HomeService.pausedUntil = 0;
+        cover();
+    }
 
     @Override
     public void onCreate() {
@@ -94,6 +99,7 @@ public class HomeWatcher extends Service {
         attach();
         IntentFilter f = new IntentFilter(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         f.addAction("com.amazon.tv.launcher.HOME_PRESSED");
+        f.addAction("amazon.intent.action.HOME_PRESSED");
         registerReceiver(homePressed, f);
         new Thread(this::readEvents, "FireFrame events").start();
     }
@@ -135,17 +141,24 @@ public class HomeWatcher extends Service {
 
     // Follows the system's event log for activities coming to the front, e.g.
     // "I am_resume_activity: [0,123,45,com.amazon.tv.launcher/.ui.HomeActivity_vNext]".
+    // Fire OS 6 keeps Home's broadcasts from other apps (CLOSE_SYSTEM_DIALOGS needs an Amazon
+    // permission), so Home itself comes from here too: every press hands Amazon's launcher a new intent,
+    // "I am_new_intent: [0,123,45,com.amazon.tv.launcher/.ui.HomeActivity_vNext,android.intent.action.MAIN,...]",
+    // even when it's already in front and nothing resumes.
     void readEvents() {
         while (!stopped) {
             String since = new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
             try {
                 Process p = Runtime.getRuntime().exec(new String[] {
-                        "logcat", "-b", "events", "-v", "brief", "-T", since, "am_resume_activity:I", "*:S"});
+                        "logcat", "-b", "events", "-v", "brief", "-T", since, "am_resume_activity:I", "am_new_intent:I", "*:S"});
                 logcat = p;
                 BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 for (String line; (line = r.readLine()) != null; ) {
                     final String component = component(line);
-                    if (component != null) main.post(() -> resumed(component));
+                    if (component == null) continue;
+                    if (!line.contains("am_new_intent")) main.post(() -> resumed(component));
+                    else if (component.startsWith(HomeService.AMAZON_HOME + "/") && component.contains("HomeActivity"))
+                        main.post(this::homePressed);
                 }
                 p.destroy();
             } catch (Exception ignored) {}
