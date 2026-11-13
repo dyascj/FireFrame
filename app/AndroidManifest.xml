@@ -17,6 +17,9 @@
     <!-- Updates from GitHub releases: see Updater. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Fire OS 6 only, see HomeWatcher. Both are granted by fireframe.sh install. -->
+    <uses-permission android:name="android.permission.READ_LOGS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <application android:label="FireFrame" android:icon="@drawable/icon" android:banner="@drawable/banner"
@@ -60,5 +63,7 @@
             </intent-filter>
             <meta-data android:name="android.accessibilityservice" android:resource="@xml/home_service" />
         </service>
+        <!-- HomeService's job on Fire OS 6, which doesn't start accessibility services. -->
+        <service android:name=".HomeWatcher" android:exported="false" />
     </application>
 </manifest>
