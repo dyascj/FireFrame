@@ -40,7 +40,8 @@ public class HomeWatcher extends Service {
     HomeScreen overlay;
     boolean added, showing, hideWhenMenusClose;
     volatile boolean stopped;
-    volatile Process logcat;
+    final java.util.List<Process> logcats = new java.util.ArrayList<>();
+    String front; // the activity in front, as last seen in the event log
     final Runnable hideNow = this::hide;
 
     // Only where HomeService can't run (newer Fire OS versions keep using HomeService), and only while
@@ -102,6 +103,7 @@ public class HomeWatcher extends Service {
         f.addAction("amazon.intent.action.HOME_PRESSED");
         registerReceiver(homePressed, f);
         new Thread(this::readEvents, "FireFrame events").start();
+        new Thread(this::readKeys, "FireFrame keys").start();
     }
 
     @Override
@@ -112,8 +114,9 @@ public class HomeWatcher extends Service {
     @Override
     public void onDestroy() {
         stopped = true;
-        Process p = logcat;
-        if (p != null) p.destroy();
+        synchronized (logcats) {
+            for (Process p : logcats) p.destroy();
+        }
         unregisterReceiver(homePressed);
         if (added) wm.removeViewImmediate(overlay);
         added = false;
@@ -146,24 +149,60 @@ public class HomeWatcher extends Service {
     // "I am_new_intent: [0,123,45,com.amazon.tv.launcher/.ui.HomeActivity_vNext,android.intent.action.MAIN,...]",
     // even when it's already in front and nothing resumes.
     void readEvents() {
+        follow(new String[] {"-b", "events", "am_resume_activity:I", "am_new_intent:I", "*:S"}, line -> {
+            final String component = component(line);
+            if (component == null) return;
+            if (!line.contains("am_new_intent")) main.post(() -> resumed(component));
+            else if (isAmazonHome(component)) main.post(this::homePressed);
+        });
+    }
+
+    // Many TV remotes, talking to the stick over HDMI-CEC, have no Home button that reaches it: the TV
+    // keeps Home for itself. So Back on Amazon's home screen brings FireFrame back too. Amazon's device
+    // control service logs every key from either remote, e.g. "I/OZ-DCS:KeyPressReceiver( 1413): Received
+    // keyCode: KEYCODE_BACK". Its tag has a colon, which logcat's tag filter can't take: match the message.
+    void readKeys() {
+        follow(new String[] {"-b", "main", "-e", "^Received keyCode: KEYCODE_BACK$"}, line -> {
+            if (line.contains("KeyPressReceiver")) main.post(this::backPressed);
+        });
+    }
+
+    interface Lines { void line(String line); }
+
+    // Runs logcat from now on and hands each line over, starting it again whenever it ends.
+    void follow(String[] args, Lines handler) {
         while (!stopped) {
             String since = new SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+            String[] cmd = new String[args.length + 5];
+            cmd[0] = "logcat"; cmd[1] = "-v"; cmd[2] = "brief"; cmd[3] = "-T"; cmd[4] = since;
+            System.arraycopy(args, 0, cmd, 5, args.length);
+            Process p = null;
             try {
-                Process p = Runtime.getRuntime().exec(new String[] {
-                        "logcat", "-b", "events", "-v", "brief", "-T", since, "am_resume_activity:I", "am_new_intent:I", "*:S"});
-                logcat = p;
+                p = Runtime.getRuntime().exec(cmd);
+                synchronized (logcats) { logcats.add(p); }
+                if (stopped) break;
                 BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                for (String line; (line = r.readLine()) != null; ) {
-                    final String component = component(line);
-                    if (component == null) continue;
-                    if (!line.contains("am_new_intent")) main.post(() -> resumed(component));
-                    else if (component.startsWith(HomeService.AMAZON_HOME + "/") && component.contains("HomeActivity"))
-                        main.post(this::homePressed);
+                for (String line; (line = r.readLine()) != null; ) handler.line(line);
+            } catch (Exception ignored) {
+            } finally {
+                if (p != null) {
+                    p.destroy();
+                    synchronized (logcats) { logcats.remove(p); }
                 }
-                p.destroy();
-            } catch (Exception ignored) {}
-            if (!stopped) SystemClock.sleep(2000); // logcat ended: start it again
+            }
+            if (!stopped) SystemClock.sleep(2000);
         }
+    }
+
+    static boolean isAmazonHome(String component) {
+        return component.startsWith(HomeService.AMAZON_HOME + "/") && component.contains("HomeActivity");
+    }
+
+    // Back while Amazon's home screen is in front, e.g. after "Amazon home screen": back to FireFrame.
+    void backPressed() {
+        if (front == null || !isAmazonHome(front)) return;
+        HomeService.pausedUntil = 0;
+        cover();
     }
 
     static String component(String line) {
@@ -177,6 +216,7 @@ public class HomeWatcher extends Service {
 
     // Same rules as HomeService.onAccessibilityEvent, from an activity name instead of an event.
     void resumed(String component) {
+        front = component;
         int slash = component.indexOf('/');
         String p = component.substring(0, slash), cls = component.substring(slash + 1);
         if (p.equals(HomeService.AMAZON_HOME)) {
