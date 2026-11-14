@@ -79,6 +79,7 @@ public class HomeScreen extends FrameLayout {
     static final Map<String, String> LOGOS = new HashMap<>();
     static {
         String[][] m = {
+                {"com.amazon.amazonvideo.livingroom", "primevideo"},
             {"com.netflix.ninja", "netflix"},
             {"com.amazon.firetv.youtube", "youtube"}, {"com.google.android.youtube.tv", "youtube"},
             {"com.amazon.firetv.youtube.tv", "youtube"}, {"com.google.android.youtube.tvunplugged", "youtube"},
