@@ -400,8 +400,7 @@ public class HomeScreen extends FrameLayout {
             try { icon.setImageDrawable(pm.getApplicationIcon(p)); } catch (PackageManager.NameNotFoundException ignored) {}
             ColorMatrix grey = new ColorMatrix();
             grey.setSaturation(0);
-            icon.setColorFilter(new ColorMatrixColorFilter(grey));
-            icon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            icon.setColorFilter(new ColorMatrixColorFilter(            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
             rounded(icon, 20);
             col.addView(icon, new LinearLayout.LayoutParams(px(82), px(82)));
         }
