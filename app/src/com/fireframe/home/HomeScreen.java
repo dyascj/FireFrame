@@ -401,7 +401,8 @@ public class HomeScreen extends FrameLayout {
             ColorMatrix grey = new ColorMatrix();
             grey.setSaturation(0);
             icon.setColorFilter(new ColorMatrixColorFilter(            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            rounded(icon, 20);
+            icon.setColorFilter(new ColorMatrixColorFilter(grey));
+icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
             col.addView(icon, new LinearLayout.LayoutParams(px(82), px(82)));
         }
         TextView name = new TextView(ctx);
