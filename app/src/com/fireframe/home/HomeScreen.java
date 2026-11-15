@@ -69,7 +69,7 @@ public class HomeScreen extends FrameLayout {
         "com.disney.disneyplus",
         "com.hulu.plus", "com.hulu.livingroomplus",
         "com.crunchyroll.crunchyroid",
-        "com.amazon.amazonvideo.livingroom",
+        "com.amazon.firebat", "com.amazon.amazonvideo.livingroom",
         "com.wbd.stream", "com.hbo.hbonow",
         "com.apple.atve.amazon.appletv", "com.apple.atve.androidtv.appletv",
         "com.cbs.ott", "com.plexapp.android", "com.spotify.tv.android",
@@ -80,6 +80,7 @@ public class HomeScreen extends FrameLayout {
     static {
         String[][] m = {
             {"com.netflix.ninja", "netflix"},
+            {"com.amazon.firebat", "primevideo"}, {"com.amazon.amazonvideo.livingroom", "primevideo"},
             {"com.amazon.firetv.youtube", "youtube"}, {"com.google.android.youtube.tv", "youtube"},
             {"com.amazon.firetv.youtube.tv", "youtube"}, {"com.google.android.youtube.tvunplugged", "youtube"},
             {"com.crunchyroll.crunchyroid", "crunchyroll"},
@@ -368,6 +369,12 @@ public class HomeScreen extends FrameLayout {
     }
 
     void launch(final String p, String label) {
+        // The Appstore's screens are Amazon's launcher on Fire OS 7: leave them alone until Home.
+        if (p.equals(HomeService.APPSTORE)) {
+            HomeService.pause(false);
+            startApp(p);
+            return;
+        }
         // On the overlay, in the 5 seconds after Home, only Amazon's launcher can open apps right away.
         if (ctx instanceof HomeService) ((HomeService) ctx).launchThroughAmazon(label, () -> startApp(p), 0);
         else startApp(p);

@@ -73,8 +73,9 @@ install)
   [ -f out/fireframe.apk ] || ./build.sh
   "$ADB" -s "$IP" install -r out/fireframe.apk
   home_on
-  tv appops set $PKG REQUEST_INSTALL_PACKAGES allow # so "Update" in FireFrame's settings can install updates
-  if [ "$(tv getprop ro.build.version.sdk)" -lt 26 ]; then
+  if [ "$(tv getprop ro.build.version.sdk)" -ge 26 ]; then
+    tv appops set $PKG REQUEST_INSTALL_PACKAGES allow # so "Update" in FireFrame's settings can install updates
+  else
     # Fire OS 6 never starts HomeService, so FireFrame watches for Home itself: see HomeWatcher.
     tv pm grant $PKG android.permission.READ_LOGS
     tv appops set $PKG SYSTEM_ALERT_WINDOW allow

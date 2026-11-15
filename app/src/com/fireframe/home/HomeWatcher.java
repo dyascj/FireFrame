@@ -227,7 +227,7 @@ public class HomeWatcher extends Service {
             if (HomeService.settingsShown && cls.contains("HomeActivity")) HomeService.pausedUntil = 0;
             cover();
         } else if (!HomeService.IGNORED.contains(p) && !p.equals(getPackageName())) {
-            if (!HomeService.isSettingsPackage(p)) HomeService.pausedUntil = 0;
+            if (!HomeService.keepsPause(p)) HomeService.pausedUntil = 0;
             if (showing) {
                 setFocusable(false);
                 overlay.postDelayed(hideNow, 600);
