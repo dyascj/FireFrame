@@ -69,7 +69,7 @@ public class HomeScreen extends FrameLayout {
         "com.disney.disneyplus",
         "com.hulu.plus", "com.hulu.livingroomplus",
         "com.crunchyroll.crunchyroid",
-        "com.amazon.amazonvideo.livingroom",
+        "com.amazon.firebat", "com.amazon.amazonvideo.livingroom",
         "com.wbd.stream", "com.hbo.hbonow",
         "com.apple.atve.amazon.appletv", "com.apple.atve.androidtv.appletv",
         "com.cbs.ott", "com.plexapp.android", "com.spotify.tv.android",
@@ -80,6 +80,7 @@ public class HomeScreen extends FrameLayout {
     static {
         String[][] m = {
             {"com.netflix.ninja", "netflix"},
+            {"com.amazon.firebat", "primevideo"}, {"com.amazon.amazonvideo.livingroom", "primevideo"},
             {"com.amazon.firetv.youtube", "youtube"}, {"com.google.android.youtube.tv", "youtube"},
             {"com.amazon.firetv.youtube.tv", "youtube"}, {"com.google.android.youtube.tvunplugged", "youtube"},
             {"com.crunchyroll.crunchyroid", "crunchyroll"},
