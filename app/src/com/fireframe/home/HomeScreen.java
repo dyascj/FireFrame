@@ -637,7 +637,7 @@ public class HomeScreen extends FrameLayout {
         if (back != null && back.isAttachedToWindow()) back.requestFocus();
         else if (layers.isEmpty() && dockRow.getChildCount() > 0) dockRow.getChildAt(0).requestFocus();
         if (layers.isEmpty() && appsChanged) buildDock();
-        if (layers.isEmpty() && ctx instanceof HomeService) HomeService.menusClosed();
+        if (layers.isEmpty() && (ctx instanceof HomeService || ctx instanceof HomeWatcher)) HomeService.menusClosed();
     }
 
     ViewGroup top() {

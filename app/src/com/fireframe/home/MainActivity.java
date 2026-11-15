@@ -29,6 +29,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         HomeService.pausedUntil = 0;
+        HomeWatcher.start(this);
         screen.onShown(false);
         // Once this has drawn, the overlay covering Amazon's launcher can step aside. Not sooner, or
         // Amazon's launcher shows through for a moment.
@@ -45,6 +46,7 @@ public class MainActivity extends Activity {
     public static class Boot extends BroadcastReceiver {
         @Override
         public void onReceive(Context c, Intent i) {
+            HomeWatcher.start(c);
             c.startActivity(new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }
     }

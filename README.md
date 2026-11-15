@@ -59,6 +59,7 @@ Measured on a Fire TV Stick HD (AFTSS), Fire OS 7.7.1.4, which has 900 MB of usa
 | Device | Fire OS | Works? |
 | --- | --- | --- |
 | Fire TV Stick HD, Lite, 3rd gen, 4K (1st gen), 4K Max (1st gen), Cube | Fire OS 7 | Yes. Tested on Fire TV Stick HD, Fire OS 7.7.1.4, and reported working on 4K Max (1st gen), Fire OS 7.7.1.3. |
+| Fire TV Stick 4K (1st gen) and others not yet on Fire OS 7 | Fire OS 6 | Yes, with the differences below. Tested on Fire TV Stick 4K (1st gen), Fire OS 6.7.1.1. |
 | Fire TV Stick 4K (2nd gen), 4K Max (2nd gen), newer Cubes | Fire OS 8 | Should work. Not tested yet, reports welcome. |
 | Fire TV Stick 4K Select and other Vega OS devices | Vega OS | No. Vega OS can't install Android apps. |
 | Android TV, Google TV, Chromecast with Google TV | Android | Yes, as a normal launcher. Pick it as the default home screen. |
@@ -142,6 +143,14 @@ So FireFrame works around it. A small accessibility service keeps a hidden, read
 If you pick an app in those 5 seconds, FireFrame can't start it directly (Fire OS holds it), so it presses that app's tile on Amazon's launcher behind the overlay instead. Amazon's own launches aren't held, so the app opens right away. At boot, FireFrame opens itself as soon as the TV has started.
 
 This reliably keeps Amazon's home screen off the screen in testing, but it's a reaction, not a block: on a slow frame you might catch a flicker. The only way to remove Amazon's launcher outright is root, which this project does not do.
+
+### On Fire OS 6
+
+Fire OS 6 never starts a third-party accessibility service, and keeps Home's broadcasts to Amazon's own apps. So there FireFrame watches the system log instead (`fireframe.sh install` grants it `READ_LOGS` and the overlay permission): Amazon's launcher coming to the front, and the new intent it gets on every Home press. It covers it with the same overlay and opens FireFrame behind it.
+
+Two differences from Fire OS 7:
+- An app picked on the overlay in the 5 seconds after Home opens when those 5 seconds are up, since pressing Amazon's tiles needs the accessibility service.
+- Back on Amazon's home screen brings FireFrame back. Many TV remotes, which reach the stick over HDMI-CEC, keep Home for the TV and never pass it on, so Back is the way out of Amazon's home screen there.
 
 Amazon's launcher still runs in the background, using about 35 MB instead of 140 MB. To get to it, open Settings on FireFrame's top right and pick "Amazon home screen".
 

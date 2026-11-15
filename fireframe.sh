@@ -74,6 +74,12 @@ install)
   "$ADB" -s "$IP" install -r out/fireframe.apk
   home_on
   tv appops set $PKG REQUEST_INSTALL_PACKAGES allow # so "Update" in FireFrame's settings can install updates
+  if [ "$(tv getprop ro.build.version.sdk)" -lt 26 ]; then
+    # Fire OS 6 never starts HomeService, so FireFrame watches for Home itself: see HomeWatcher.
+    tv pm grant $PKG android.permission.READ_LOGS
+    tv appops set $PKG SYSTEM_ALERT_WINDOW allow
+    tv am force-stop $PKG # READ_LOGS takes effect on the next start
+  fi
   tv am start -n $PKG/.MainActivity >/dev/null 2>&1
   echo "FireFrame is on the TV. Press Home on the remote to check it comes back."
   ;;
@@ -146,6 +152,10 @@ undo)
   fi
   for k in window_animation_scale transition_animation_scale animator_duration_scale; do tv settings put global $k 1; done
   home_off
+  if [ "$(tv getprop ro.build.version.sdk)" -lt 26 ]; then
+    tv pm revoke $PKG android.permission.READ_LOGS >/dev/null 2>&1
+    tv am force-stop $PKG >/dev/null 2>&1
+  fi
   echo "Home button goes to Amazon's home screen again."
   if [ "$3" = --uninstall ]; then "$ADB" -s "$IP" uninstall $PKG >/dev/null && echo "FireFrame removed."; fi
   ;;

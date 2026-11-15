@@ -73,6 +73,7 @@ public class HomeService extends AccessibilityService {
 
     // The FireFrame app is in front and drawn: the overlay can go, unless a menu is open on it.
     static void appShown() {
+        HomeWatcher.appShown();
         HomeService s = running;
         if (s == null || !s.showing) return;
         if (s.overlay.layers.isEmpty()) s.hide();
@@ -80,11 +81,13 @@ public class HomeService extends AccessibilityService {
     }
 
     static void menusClosed() {
+        HomeWatcher.menusClosed();
         HomeService s = running;
         if (s != null && s.hideWhenMenusClose) s.hide();
     }
 
     static void hideOverlay() {
+        HomeWatcher.hideOverlay();
         if (running != null) running.hide();
     }
 
