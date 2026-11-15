@@ -369,6 +369,12 @@ public class HomeScreen extends FrameLayout {
     }
 
     void launch(final String p, String label) {
+        // The Appstore's screens are Amazon's launcher on Fire OS 7: leave them alone until Home.
+        if (p.equals(HomeService.APPSTORE)) {
+            HomeService.pause(false);
+            startApp(p);
+            return;
+        }
         // On the overlay, in the 5 seconds after Home, only Amazon's launcher can open apps right away.
         if (ctx instanceof HomeService) ((HomeService) ctx).launchThroughAmazon(label, () -> startApp(p), 0);
         else startApp(p);

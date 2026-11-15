@@ -23,6 +23,8 @@ import android.view.accessibility.AccessibilityWindowInfo;
 //     that app's tile on Amazon's launcher, hidden behind the overlay: Amazon's launches aren't held.
 public class HomeService extends AccessibilityService {
     static final String AMAZON_HOME = "com.amazon.tv.launcher";
+    // Amazon's Appstore. On Fire OS 7 its screens are drawn by Amazon's launcher, so it pauses covering.
+    static final String APPSTORE = "com.amazon.venezia";
     static final int SHOWN = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_FULLSCREEN;
     static final int HIDDEN = SHOWN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
 
@@ -65,6 +67,11 @@ public class HomeService extends AccessibilityService {
 
     static boolean isSettingsPackage(String p) {
         return p.startsWith("com.amazon.tv.settings") || p.equals("com.android.settings");
+    }
+
+    // Apps that show up during a pause without ending it: settings, and the Appstore behind Amazon's launcher.
+    static boolean keepsPause(String p) {
+        return isSettingsPackage(p) || p.equals(APPSTORE);
     }
 
     static boolean paused() {
@@ -141,7 +148,7 @@ public class HomeService extends AccessibilityService {
             if (settingsShown && cls.contains("HomeActivity")) pausedUntil = 0; // Back out of settings
             cover();
         } else if (!IGNORED.contains(p) && !p.equals(getPackageName())) {
-            if (!isSettingsPackage(p)) pausedUntil = 0; // another app opened
+            if (!keepsPause(p)) pausedUntil = 0; // another app opened
             if (showing) {
                 // Let the app have the remote now, but keep covering until it has drawn its first frame.
                 setFocusable(false);
@@ -160,7 +167,6 @@ public class HomeService extends AccessibilityService {
 
     void show() {
         if (overlay == null || !attach()) return;
-        if (!showing)
         overlay.removeCallbacks(hideNow);
         boolean appearing = !showing; // Home again: back to the dock, menus closed
         if (appearing) {
