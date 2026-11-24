@@ -16,6 +16,9 @@ final class QuickMenu {
 
     QuickMenu(HomeScreen s) { this.s = s; }
 
+    // The quick menu is a Beta feature. This is its default for a new install.
+    static final String HUD_DEFAULT = "off";
+
     static final int HUD_PROFILE = 0, HUD_APPS = 1, HUD_SLEEP = 2, HUD_MIRROR = 3, HUD_SETTINGS = 4;
     ViewGroup hudLayer;
 

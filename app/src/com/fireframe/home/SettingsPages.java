@@ -97,7 +97,7 @@ final class SettingsPages {
         new Setting("Dock and apps", DOCK_SETTINGS),
         new Setting("amazon_block", "Block Amazon home screen", "on", new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
         new Setting("update_check", "Update check", "daily", new String[] {"daily", "off"}, new String[] {"Daily", "Off"}),
-        new Setting("hud", "Quick menu", "on", new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
+        new Setting("hud", "Quick menu (Beta)", QuickMenu.HUD_DEFAULT, new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
     };
 
     String settingValue(Setting st) {

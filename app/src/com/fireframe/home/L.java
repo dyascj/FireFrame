@@ -109,7 +109,7 @@ final class L {
             {"Large", "Groß"},
             {"Never", "Nie"},
             {"App names in the drawer", "App-Namen in der Übersicht"},
-            {"Quick menu", "Schnellmenü"},
+            {"Quick menu (Beta)", "Schnellmenü (Beta)"},
             {"Block Amazon home screen", "Amazon-Startbildschirm sperren"},
             {"Profiles", "Profile"},
             {"Sleep", "Ruhemodus"},

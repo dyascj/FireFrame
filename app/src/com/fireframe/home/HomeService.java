@@ -141,7 +141,7 @@ public class HomeService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent e) {
         // Amazon's menu window is listed as soon as it is added, before its content draws: earlier than window-state.
         if (e.getEventType() == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
-            if (hudOpen || !"on".equals(Updater.prefs(this).getString("hud", "on")) || Safe.active(this)) return;
+            if (hudOpen || !"on".equals(Updater.prefs(this).getString("hud", QuickMenu.HUD_DEFAULT)) || Safe.active(this)) return;
             for (AccessibilityWindowInfo w : getWindows()) {
                 AccessibilityNodeInfo root = w.getRoot();
                 // The settings app has other screens too: only the quick menu has the clock id (needs flagReportViewIds).
@@ -158,7 +158,7 @@ public class HomeService extends AccessibilityService {
         String p = pkg.toString();
         if (p.equals(HUD_PACKAGE)) {
             // Amazon's long-Home menu: cover it with FireFrame's own, unless that's turned off.
-            if (String.valueOf(e.getClassName()).contains("HudActivity") && "on".equals(Updater.prefs(this).getString("hud", "on"))) openHud();
+            if (String.valueOf(e.getClassName()).contains("HudActivity") && "on".equals(Updater.prefs(this).getString("hud", QuickMenu.HUD_DEFAULT))) openHud();
             return;
         }
         if (p.equals(AMAZON_HOME)) {
