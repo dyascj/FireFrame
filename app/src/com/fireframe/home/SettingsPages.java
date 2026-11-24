@@ -26,6 +26,7 @@ final class SettingsPages {
 
     Runnable settingsRefresh; // redraws the open settings screen, if there is one
     final List<Runnable> pageRedraws = new ArrayList<>(); // the settings pages that are open, to redraw together
+    String checkStatus, installStatus; // what the Updates rows show after a check or an install; null shows the version
 
     // ---- FireFrame's own settings ----
 
@@ -86,6 +87,11 @@ final class SettingsPages {
         new Setting("recent", "Recently used apps", "on", new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
         new Setting("hidden_apps_open", "Hidden apps", "", null, null), // not a value: OK opens the list (openSettingsPage)
     };
+    static final Setting[] UPDATE_SETTINGS = {
+        new Setting("update_now", "Check for updates", "", null, null), // not a value: OK checks now, the row shows the result
+        new Setting("update_check", "Automatic update check", "daily", new String[] {"daily", "off"}, OFF_ON_SHOWN_REV),
+        new Setting("update_install", "Install update", "", null, null), // only while a newer release is known (updateRows)
+    };
     static final Setting[] SETTINGS = {
         new Setting("lang", "Language", "auto", new String[] {"auto", "en", "de"}, new String[] {"Auto", "English", "Deutsch"}),
         new Setting("clock", "Clock", "auto", new String[] {"auto", "12", "24"}, new String[] {"Auto", "12-hour", "24-hour"}),
@@ -96,7 +102,7 @@ final class SettingsPages {
         new Setting("Night mode", NIGHT_SETTINGS),
         new Setting("Dock and apps", DOCK_SETTINGS),
         new Setting("amazon_block", "Block Amazon home screen", "on", new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
-        new Setting("update_check", "Update check", "daily", new String[] {"daily", "off"}, new String[] {"Daily", "Off"}),
+        new Setting("Updates", UPDATE_SETTINGS),
         new Setting("hud", "Quick menu (Beta)", QuickMenu.HUD_DEFAULT, new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
     };
 
@@ -106,6 +112,8 @@ final class SettingsPages {
             int n = s.hiddenMap().size();
             return n == 0 ? "›" : String.valueOf(n);
         }
+        if ("update_now".equals(st.key)) return checkStatus != null ? checkStatus : currentVersion();
+        if ("update_install".equals(st.key)) return installStatus != null ? installStatus : Updater.available(s.ctx);
         if (st.values == null) {
             String c = s.prefs.getString(st.key, st.def);
             return c.isEmpty() ? L.t("Not set") : c;
@@ -135,6 +143,17 @@ final class SettingsPages {
 
     void openSettings(View anchor) {
         openSettingsPage(L.t("Settings"), SETTINGS, anchor, true);
+    }
+
+    String currentVersion() {
+        try { return s.pm.getPackageInfo(s.ctx.getPackageName(), 0).versionName; } catch (Exception e) { return ""; }
+    }
+
+    // The Updates page as it is now: the install row is left out while no newer release is known.
+    Setting[] updateRows() {
+        List<Setting> rows = new ArrayList<>();
+        for (Setting st : UPDATE_SETTINGS) if (!"update_install".equals(st.key) || Updater.available(s.ctx) != null) rows.add(st);
+        return rows.toArray(new Setting[0]);
     }
 
     // One page of settings: a list of rows. Some rows open a page of their own.
@@ -167,9 +186,24 @@ final class SettingsPages {
             });
             row.setOnClickListener(v -> {
                 if (st.sub != null) {
-                    openSettingsPage(st.label, st.sub, v, false);
+                    openSettingsPage(st.label, st.sub == UPDATE_SETTINGS ? updateRows() : st.sub, v, false);
                 } else if ("hidden_apps_open".equals(st.key)) {
                     s.openHidden(v);
+                } else if ("update_now".equals(st.key)) {
+                    checkStatus = L.t("Checking…");
+                    settingsRefresh.run();
+                    Updater.checkNow(s.ctx, (state, version) -> {
+                        checkStatus = state == Updater.FAILED ? L.t("Check failed")
+                                : state == Updater.AVAILABLE ? String.format(L.t("Update available: %s"), version) : L.t("Up to date");
+                        settingsRefresh.run();
+                    });
+                } else if ("update_install".equals(st.key)) {
+                    installStatus = L.t("Downloading…");
+                    settingsRefresh.run();
+                    Updater.install(s.ctx, () -> {
+                        installStatus = L.t("Couldn't download");
+                        settingsRefresh.run();
+                    });
                 } else if (st.values == null) {
                     openCityEntry(v);
                 } else {

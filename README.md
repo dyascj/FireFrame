@@ -196,6 +196,7 @@ Settings at the top right, then **FireFrame settings**. Press OK on a row to go 
 | Dock size | Normal, Compact. Compact tiles are smaller, so more fit on the dock |
 | Dynamic dock | Off, On. On: the dock is centred and only as wide as its apps, so one app gives a one-tile dock. It changes size like a drop of liquid |
 | Block Amazon home screen | On, Off. On: Amazon's home screen is always covered. Off: FireFrame stays out of the way and Amazon's home screen can be used (the "Amazon home screen" entry in the settings menu works either way). |
+| Updates > | Check for updates (checks right away; the row shows the result). Automatic update check (On = once a day, Off = never). Install update (appears when a newer release is known; Android asks for one OK on the TV) |
 | Quick menu (Beta) | Off, On. On: a long press on Home shows FireFrame's own menu instead of Amazon's (see below). Off by default |
 | Dock and apps > Hidden apps | The number of apps hidden from FireFrame (see Folders). OK opens them, and OK on one shows it again |
 
@@ -223,7 +224,7 @@ FireFrame checks this repo for a new release once a day. When there is one, it t
 
 Fire OS asks for that one OK on every app install outside Amazon's Appstore, so updates can't be fully silent without root.
 
-Settings > "Check for updates" checks right away, and Settings > "Update check" (daily or off) controls the daily check. Fire OS 8 is Android 11, which can't install silently (only Android 12 and later can, and only for the app that installed it), so every update needs one OK on the TV.
+Settings > Updates > "Check for updates" checks right away, and Settings > Updates > "Automatic update check" (on or off) controls the daily check. Fire OS 8 is Android 11, which can't install silently (only Android 12 and later can, and only for the app that installed it), so every update needs one OK on the TV.
 
 **Forks.** The updater follows the releases of the repo named in `app/res/values/config.xml` (`update_repo`). A fork that publishes its own releases changes it to its own `owner/name`. Releases must be signed with the same `key.jks` as the build on the TV, or Android refuses the update, so keep that file safe and never commit it.
 

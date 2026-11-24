@@ -906,14 +906,6 @@ public class HomeScreen extends FrameLayout {
         final List<Runnable> actions = new ArrayList<>();
         items.add(L.t("FireFrame settings"));
         actions.add(() -> settings.openSettings(anchor));
-        items.add(L.t("Check for updates"));
-        actions.add(() -> {
-            showCaption(L.t("Checking for updates…"));
-            Updater.checkNow(ctx, (state, version) -> showCaption(
-                    state == Updater.FAILED ? L.t("Couldn't check for updates. Check the Wi-Fi.")
-                    : state == Updater.AVAILABLE ? String.format(L.t("FireFrame %s is out. Update it from Settings, top right."), version)
-                    : String.format(L.t("FireFrame is up to date (%s)"), version)));
-        });
         items.add(L.t(amazon ? "Fire TV settings" : "TV settings"));
         actions.add(() -> {
             HomeService.pause(true);
@@ -1094,7 +1086,10 @@ public class HomeScreen extends FrameLayout {
         View back = (View) layer.getTag();
         if (back != null && back.isAttachedToWindow()) back.requestFocus();
         else if (layers.isEmpty() && dockRow.getChildCount() > 0) dockRow.getChildAt(0).requestFocus();
-        if (layers.isEmpty()) settings.pageRedraws.clear();
+        if (layers.isEmpty()) { // the settings are closed: the update rows start again from the version
+            settings.pageRedraws.clear();
+            settings.checkStatus = settings.installStatus = null;
+        }
         if (layers.isEmpty() && appsChanged) buildDock();
         if (layers.isEmpty() && (ctx instanceof HomeService || ctx instanceof HomeWatcher)) HomeService.menusClosed();
     }
