@@ -221,6 +221,8 @@ FireFrame checks this repo for a new release once a day. When there is one, it t
 
 Fire OS asks for that one OK on every app install outside Amazon's Appstore, so updates can't be fully silent without root.
 
+Settings > "Check for updates" checks right away, and Settings > "Update check" (daily or off) controls the daily check. Fire OS 8 is Android 11, which can't install silently (only Android 12 and later can, and only for the app that installed it), so every update needs one OK on the TV.
+
 **Forks.** The updater follows the releases of the repo named in `app/res/values/config.xml` (`update_repo`). A fork that publishes its own releases changes it to its own `owner/name`. Releases must be signed with the same `key.jks` as the build on the TV, or Android refuses the update, so keep that file safe and never commit it.
 
 On FireFrame 1.0.0 or 1.0.1, which came before the updater, update by hand once:

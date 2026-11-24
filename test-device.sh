@@ -8,6 +8,10 @@
 # It changes nothing permanent: no installs, no settings, no data cleared, no sleep.
 # It only presses keys, taps, opens menus and reads the screen. Every test ends on FireFrame's home screen.
 # Not "set -e": a failed check must not stop the others.
+# Safety: OK, ENTER, long press and taps are sent only while FireFrame is in front, else the run aborts (Home, exit 2).
+# Safety: navigation keys (D-pad, Back, Home) are always allowed; they are how the script gets out.
+# Safety: at most 80 OK/ENTER/long press/tap per run, then the run aborts.
+# Safety: Amazon's quick menu (HUD) does not count as FireFrame.
 set -f # the texts below contain "|" and must never be globbed
 
 VERBOSE=0
@@ -18,7 +22,7 @@ case "$IP" in *:*|emulator-*) ;; *) IP=$IP:5555 ;; esac
 
 PKG=com.fireframe.home
 XML=/sdcard/ff-test.xml # temp file for uiautomator, removed after each read
-N=0 F=0 # checks run, checks failed
+N=0 F=0 SENT=0 FOCUS= # checks run, checks failed, OK/ENTER/taps sent, last focus line
 
 # adb lookup, same as fireframe.sh
 ADB=$(command -v adb || true)
@@ -30,11 +34,44 @@ done
 A() { "$ADB" -s "$IP" "$@"; }
 tv() { A shell "$@" </dev/null | tr -d '\r'; } # </dev/null: adb would eat read loops
 
-# Press a remote key, then let the screen react.
-key() { tv "input keyevent $1"; sleep 0.7; }
+# True if FireFrame is in front. FOCUS keeps the focus line for messages.
+in_front() {
+  FOCUS=$(tv "dumpsys window | grep mCurrentFocus")
+  case "$FOCUS" in *com.amazon.tv.settings.v2/*HudActivity*) return 1 ;; esac
+  case "$FOCUS" in *"$PKG"*) return 0 ;; esac
+  return 1
+}
+
+# Stop the run: Home, summary line, exit 2.
+abort() {
+  echo "ABORT: $1"
+  tv "input keyevent KEYCODE_HOME"; sleep 8
+  echo "$N checks, $F failed, aborted"
+  exit 2
+}
+
+# Every OK, ENTER, long press and tap goes through here first.
+guard_select() {
+  SENT=$((SENT + 1))
+  [ "$SENT" -le 80 ] || abort "more than 80 OK/ENTER/taps in one run, last was $1"
+  in_front || abort "$1: FireFrame is not in front (focus: $FOCUS)"
+}
+
+# Press a remote key, then let the screen react. OK-type keys are guarded: they would click what is in front.
+key() {
+  case "$1" in KEYCODE_DPAD_CENTER|KEYCODE_ENTER|KEYCODE_NUMPAD_ENTER) guard_select "$1" ;; esac
+  tv "input keyevent $1"; sleep 0.7
+}
+
+# Long OK opens move mode on a dock app: guarded like any OK.
+longpress_ok() {
+  guard_select "input keyevent --longpress KEYCODE_DPAD_CENTER"
+  tv "input keyevent --longpress KEYCODE_DPAD_CENTER"; sleep 1.5
+}
 
 # Tap at (X, Y) in a 1920x1080 layout, scaled to the TV's real screen size.
 tap() {
+  guard_select "tap $1 $2"
   size=$(tv "wm size" | sed -n 's/.*Physical size: *\([0-9]*\)x\([0-9]*\).*/\1 \2/p')
   [ -n "$size" ] || size="1920 1080"
   dw=${size% *}; dh=${size#* }
@@ -251,7 +288,7 @@ ensure_front
 #    wiggle, and uiautomator won't dump a moving screen, so that one is only a WARN.
 key KEYCODE_HOME; sleep 8
 key KEYCODE_DPAD_DOWN # focus the dock
-tv "input keyevent --longpress KEYCODE_DPAD_CENTER"; sleep 1.5
+longpress_ok
 if assert_text "Move|Verschieben"; then
   N=$((N + 1)); echo "PASS  move mode shows its hint"
 else
