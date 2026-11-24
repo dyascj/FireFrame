@@ -125,10 +125,12 @@ Apps are disabled, not deleted. [debloat.txt](debloat.txt) lists every package w
 | Group | What turns off | What you lose |
 | --- | --- | --- |
 | `safe` (always) | ads, automatic content recognition, recommendations, shopping, News, telemetry, demo mode, tutorials, Amazon Kids, Luna, Wi-Fi password sync, coral reef and jellyfish screensaver apps that ship a proxy SDK | nothing you'd use |
-| `alexa` | Alexa and its media, calling and multi-room audio services | voice search on the mic button |
+| `alexa` | Alexa and its media, calling, smart home and multi-room audio services | voice search on the mic button |
 | `primevideo` | Prime Video | Prime Video |
 | `livetv` | Amazon's Live TV guide | the guide. Channel apps like Tubi and Fubo still work on their own. |
-| `amazonapps` | Amazon Music, Amazon Photos, Silk Browser | those apps |
+| `amazonapps` | Amazon Music, Amazon Photos, Silk Browser, IMDb TV | those apps |
+| `telemetry` | more analytics and tracking: event pipelines, usage statistics, advertising ID, surveys, promotions | nothing you'd use. Goes deeper than `safe`, so Fire OS may refuse some, and they are skipped |
+| `screensaver` | Amazon's screensaver and Ambient-TV, which fetch pictures from Amazon on an idle stick | Amazon's screensaver. The TV goes dark or to sleep instead |
 | `casting` | Fire TV's screen mirroring and Amazon's cast receiver | mirroring a phone or PC. Casting from the Netflix and YouTube apps keeps working. |
 | `updates` | Amazon's forced updater | forced updates. Regular updates are protected and stay on. |
 
