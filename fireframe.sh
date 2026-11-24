@@ -4,7 +4,10 @@
 #   ./fireframe.sh install   <tv-ip>             build, install, take over the Home button, open it
 #   ./fireframe.sh debloat   <tv-ip> [--dry-run] turn off Amazon ads, tracking and junk ("safe" in debloat.txt)
 #   ./fireframe.sh debloat   <tv-ip> --also alexa,primevideo   also these groups from debloat.txt (or --all)
-#   ./fireframe.sh wallpaper <tv-ip> photo.jpg   use your own photo
+#   ./fireframe.sh debloat   <tv-ip> --list      which packages from debloat.txt are on or off right now
+#   ./fireframe.sh wallpaper <tv-ip> photo.jpg   use your own photo (or a folder of photos: a slideshow,
+#                                                add --slideshow 15 to change every 15 minutes)
+#   ./fireframe.sh weather   <tv-ip> "Berlin"    show the weather for a city ("off" turns it off)
 #   ./fireframe.sh undo      <tv-ip> [--uninstall] turn everything back on (and remove FireFrame)
 #   ./fireframe.sh memory    <tv-ip>             free memory right now
 #
@@ -13,7 +16,7 @@ set -e
 cd "$(dirname "$0")"
 
 CMD=$1; IP=$2
-[ -n "$CMD" ] && [ -n "$IP" ] || { sed -n '3,9p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+[ -n "$CMD" ] && [ -n "$IP" ] || { sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 case "$IP" in *:*|emulator-*) ;; *) IP=$IP:5555 ;; esac
 
 PKG=com.fireframe.home
@@ -22,7 +25,7 @@ LOG=disabled.txt # what debloat turned off, so undo can turn it back on (also ke
 TVLOG=/data/local/tmp/fireframe-disabled.txt
 
 ADB=$(command -v adb || true)
-for a in /opt/homebrew/share/android-commandlinetools/platform-tools/adb "$HOME/Library/Android/sdk/platform-tools/adb"; do
+for a in /opt/homebrew/share/android-commandlinetools/platform-tools/adb "$HOME/Library/Android/sdk/platform-tools/adb" "$HOME/Android/Sdk/platform-tools/adb"; do
   [ -n "$ADB" ] || { [ -x "$a" ] && ADB=$a; }
 done
 [ -n "$ADB" ] || { echo "adb not found. macOS: brew install --cask android-platform-tools" >&2; exit 1; }
@@ -87,16 +90,29 @@ install)
 
 debloat)
   connect
-  groups=" safe "; dry=""
+  groups=" safe "; dry=""; list=""
   shift 2
   while [ $# -gt 0 ]; do
     case "$1" in
       --dry-run) dry=1 ;;
+      --list) list=1 ;;
       --all) groups=" $(grep -v '^[[:space:]]*#' debloat.txt | awk 'NF{print $1}' | sort -u | tr '\n' ' ') " ;;
       --also) groups="$groups$(echo "$2" | tr ',' ' ') "; shift ;;
     esac
     shift
   done
+  if [ -n "$list" ]; then
+    # What's on and off right now, for every package in debloat.txt that this TV has.
+    off=$(tv pm list packages -d); on=$(tv pm list packages -e)
+    grep -v '^[[:space:]]*#' debloat.txt | while read -r group pkg note; do
+      [ -n "$pkg" ] || continue
+      if echo "$off" | grep -q -x "package:$pkg"; then state="off"
+      elif echo "$on" | grep -q -x "package:$pkg"; then state="on "
+      else continue; fi
+      printf '%s  %-12s %s\n' "$state" "$group" "$pkg"
+    done
+    exit 0
+  fi
   memory
   grep -v '^[[:space:]]*#' debloat.txt | while read -r group pkg note; do
     [ -n "$pkg" ] || continue
@@ -122,21 +138,56 @@ debloat)
   ;;
 
 wallpaper)
-  [ -f "$3" ] || { echo "usage: ./fireframe.sh wallpaper <tv-ip> photo.jpg" >&2; exit 1; }
+  [ -e "$3" ] || { echo "usage: ./fireframe.sh wallpaper <tv-ip> photo.jpg|folder [--slideshow <minutes>]" >&2; exit 1; }
   connect
-  tmp=$(mktemp -d)/wallpaper.jpg
+  tmp=$(mktemp -d)
   # Fire TV draws at 1920x1080: scale big photos down so they load fast and use little memory.
-  if command -v magick >/dev/null; then magick "$3" -resize '1920x1080^' -quality 85 "$tmp"
-  elif command -v sips >/dev/null; then cp "$3" "$tmp"; sips -Z 1920 "$tmp" >/dev/null
-  else cp "$3" "$tmp"; fi
-  # Since Android 11 adb can't write into the app's folder, so the app copies the photo in from here.
-  TVTMP=/data/local/tmp/fireframe-wallpaper.jpg
-  "$ADB" -s "$IP" push "$tmp" $TVTMP >/dev/null
-  tv chmod 644 $TVTMP
-  tv am start -W -n $PKG/.MainActivity --es from $TVTMP --es wallpaper custom >/dev/null 2>&1
-  sleep 1 # -W doesn't wait when the app is already in front
-  tv rm -f $TVTMP
-  echo "Wallpaper set. The picture button on FireFrame switches between it and the built-in ones."
+  prep() {
+    if command -v magick >/dev/null; then magick "$1" -resize '1920x1080^' -quality 85 "$2"
+    elif command -v sips >/dev/null; then cp "$1" "$2"; sips -Z 1920 "$2" >/dev/null
+    else cp "$1" "$2"; fi
+  }
+  slide=""
+  [ "$4" = --slideshow ] && [ -n "$5" ] && slide="--es slide $5"
+  if [ -d "$3" ]; then
+    # A folder of photos: they're pushed one by one and the app copies them in, as for a single photo below.
+    TVDIR=/data/local/tmp/fireframe-photos
+    tv rm -rf $TVDIR; tv mkdir -p $TVDIR
+    n=0
+    for f in "$3"/*.jpg "$3"/*.jpeg "$3"/*.png "$3"/*.JPG "$3"/*.JPEG "$3"/*.PNG; do
+      [ -f "$f" ] || continue
+      n=$((n + 1)); name=$(printf 'photo%03d.jpg' $n)
+      prep "$f" "$tmp/$name"
+      "$ADB" -s "$IP" push "$tmp/$name" $TVDIR/$name >/dev/null
+    done
+    [ $n -gt 0 ] || { echo "No .jpg or .png photos in $3" >&2; exit 1; }
+    tv chmod -R a+rX $TVDIR
+    tv am start -W -n $PKG/.MainActivity --es fromdir $TVDIR $slide >/dev/null 2>&1
+    sleep 2
+    tv rm -rf $TVDIR
+    echo "$n photos set. The picture button on FireFrame cycles through them and the built-in ones."
+    [ -n "$slide" ] || echo "For a slideshow, turn it on in FireFrame's settings, or add --slideshow 15 (minutes)."
+  else
+    prep "$3" "$tmp/wallpaper.jpg"
+    # Since Android 11 adb can't write into the app's folder, so the app copies the photo in from here.
+    TVTMP=/data/local/tmp/fireframe-wallpaper.jpg
+    "$ADB" -s "$IP" push "$tmp/wallpaper.jpg" $TVTMP >/dev/null
+    tv chmod 644 $TVTMP
+    tv am start -W -n $PKG/.MainActivity --es from $TVTMP --es wallpaper custom $slide >/dev/null 2>&1
+    sleep 1 # -W doesn't wait when the app is already in front
+    tv rm -f $TVTMP
+    echo "Wallpaper set. The picture button on FireFrame switches between it and the built-in ones."
+  fi
+  rm -rf "$tmp"
+  ;;
+
+weather)
+  [ -n "$3" ] || { echo "usage: ./fireframe.sh weather <tv-ip> \"Berlin\"   (or: off)" >&2; exit 1; }
+  connect
+  city=$(printf '%s' "$3" | tr -d "'\"\\\$\`")
+  # The TV looks the city up on open-meteo.com (a free weather service) and shows the weather under the clock.
+  tv am start -W -n $PKG/.MainActivity --es weather_city "'$city'" >/dev/null 2>&1
+  echo "Weather for $city is set. Look under the clock in a few seconds. Off: ./fireframe.sh weather <tv-ip> off"
   ;;
 
 undo)
@@ -163,5 +214,5 @@ undo)
 
 memory) connect; memory ;;
 
-*) sed -n '3,9p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+*) sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

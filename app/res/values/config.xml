@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The GitHub repo whose releases the updater follows (owner/name). A fork that publishes
+         its own releases, signed with its own key, changes this to its own repo. -->
+    <string name="update_repo">dyascj/FireFrame</string>
+</resources>

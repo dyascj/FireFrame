@@ -24,8 +24,13 @@ import java.net.URL;
 // settings menu downloads its APK and hands it to Android's installer, which asks for one OK on the TV.
 // Releases are signed with the same key, so the update installs over the top and keeps everything.
 public class Updater extends BroadcastReceiver {
-    static final String LATEST = "https://api.github.com/repos/dyascj/FireFrame/releases/latest";
     static final long DAY = 24 * 60 * 60 * 1000L;
+
+    // The releases of the repo named in res/values/config.xml, so a fork can follow its own releases.
+    static String latest(Context c) {
+        int id = c.getResources().getIdentifier("update_repo", "string", c.getPackageName());
+        return "https://api.github.com/repos/" + (id == 0 ? "dyascj/FireFrame" : c.getString(id)) + "/releases/latest";
+    }
 
     static SharedPreferences prefs(Context c) {
         return c.getSharedPreferences("fireframe", Context.MODE_PRIVATE);
@@ -39,7 +44,7 @@ public class Updater extends BroadcastReceiver {
         prefs.edit().putLong("update_checked", now).apply();
         new Thread(() -> {
             try {
-                JSONObject release = new JSONObject(read(LATEST));
+                JSONObject release = new JSONObject(read(latest(c)));
                 String version = release.getString("tag_name").replaceFirst("^v", "");
                 JSONArray assets = release.getJSONArray("assets");
                 for (int i = 0; i < assets.length(); i++) {
@@ -60,7 +65,7 @@ public class Updater extends BroadcastReceiver {
     static String available(Context c) {
         String v = prefs(c).getString("update_version", null);
         try {
-            return v != null && newer(v, c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName) ? v : null;
+            return v != null && Version.newer(v, c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName) ? v : null;
         } catch (Exception e) {
             return null;
         }
@@ -99,23 +104,9 @@ public class Updater extends BroadcastReceiver {
             Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
             if (confirm != null) c.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } else if (status != PackageInstaller.STATUS_SUCCESS && status != PackageInstaller.STATUS_FAILURE_ABORTED) {
-            Toast.makeText(c, "FireFrame couldn't update: " + i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE),
+            Toast.makeText(c, String.format(L.t("FireFrame couldn't update: %s"), i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)),
                     Toast.LENGTH_LONG).show();
         }
-    }
-
-    // "1.10.0" is newer than "1.9.2".
-    static boolean newer(String a, String b) {
-        String[] x = a.split("\\."), y = b.split("\\.");
-        for (int i = 0; i < Math.max(x.length, y.length); i++) {
-            int d = num(x, i) - num(y, i);
-            if (d != 0) return d > 0;
-        }
-        return false;
-    }
-
-    static int num(String[] parts, int i) {
-        try { return Integer.parseInt(parts[i].replaceAll("\\D.*", "")); } catch (Exception e) { return 0; }
     }
 
     static InputStream open(String url) throws Exception {

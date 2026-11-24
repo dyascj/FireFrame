@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- HomeService needs to know when a new screen opens and which app it belongs to, and to press app
-     tiles on Amazon's launcher (see launchThroughAmazon). -->
+<!-- HomeService needs to know when a new screen opens and which app it belongs to, to press app
+     tiles on Amazon's launcher (see launchThroughAmazon), and to press a tile of Amazon's quick menu by its
+     id (see pressAmazonHud). -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowsChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagRetrieveInteractiveWindows"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="0" />

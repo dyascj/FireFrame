@@ -17,12 +17,14 @@
     <!-- Updates from GitHub releases: see Updater. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Uninstall in the app menu: the standard Android dialog asks for the OK. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <!-- Fire OS 6 only, see HomeWatcher. Both are granted by fireframe.sh install. -->
     <uses-permission android:name="android.permission.READ_LOGS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <application android:label="FireFrame" android:icon="@drawable/icon" android:banner="@drawable/banner"
+    <application android:name=".FireFrameApp" android:label="FireFrame" android:icon="@drawable/icon" android:banner="@drawable/banner"
         android:allowBackup="false" android:hardwareAccelerated="true"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
         <activity android:name=".MainActivity"
