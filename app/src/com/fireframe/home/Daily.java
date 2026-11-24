@@ -24,7 +24,7 @@ final class Daily {
     private Daily() {}
 
     static final long DAY = 20 * 60 * 60 * 1000L;  // a new picture is due after this
-    static final long RETRY = 10 * 60 * 1000L;     // how long to wait after a failed fetch
+    static final long RETRY = 60 * 60 * 1000L;     // how long to wait after a failed fetch (a too-big picture would fail again and again)
     static final long MAX_BYTES = 12 * 1024 * 1024; // pictures bigger than this are skipped
 
     static long tried;
@@ -63,43 +63,53 @@ final class Daily {
         running = true;
         new Thread(() -> {
             try {
-                String url, credit;
+                String[] urls;
+                String credit;
                 if (name.equals("wiki")) {
                     SimpleDateFormat day = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
                     day.setTimeZone(TimeZone.getTimeZone("UTC"));
                     JSONObject image = new JSONObject(Updater.read(
                             "https://api.wikimedia.org/feed/v1/wikipedia/en/featured/" + day.format(new Date()))).getJSONObject("image");
                     JSONObject original = image.getJSONObject("image");
-                    url = original.getInt("width") >= 1920 ? Pictures.widen(image.getJSONObject("thumbnail").getString("source"), 1920) : original.getString("source");
+                    String url = original.getInt("width") >= 1920 ? Pictures.widen(image.getJSONObject("thumbnail").getString("source"), 1920) : original.getString("source");
+                    urls = new String[] { url };
                     String text = image.optJSONObject("description") == null ? "" : image.getJSONObject("description").optString("text", "");
                     credit = (text.length() > 80 ? text.substring(0, 80) + "…" : text) + (text.isEmpty() ? "" : "  ·  ") + "Wikimedia Commons";
                 } else {
                     JSONObject apod = new JSONObject(Updater.read("https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY"));
                     if (!"image".equals(apod.optString("media_type"))) throw new Exception("today's entry is not a picture");
-                    url = apod.optString("hdurl", apod.getString("url")); // the big one if there is one
+                    // The big one first; if it's missing or too big, the plain one.
+                    urls = apod.has("hdurl") ? new String[] { apod.getString("hdurl"), apod.getString("url") } : new String[] { apod.getString("url") };
                     credit = apod.optString("title", "NASA") + "  ·  NASA APOD";
                 }
                 File tmp = new File(c.getFilesDir(), "daily_" + name + ".tmp");
-                long size = 0;
-                try (InputStream in = Updater.open(url); FileOutputStream out = new FileOutputStream(tmp)) {
-                    byte[] buf = new byte[64 * 1024];
-                    for (int n; (n = in.read(buf)) > 0; ) {
-                        size += n;
-                        if (size > MAX_BYTES) throw new Exception("picture too big");
-                        out.write(buf, 0, n);
+                for (String url : urls) {
+                    try {
+                        long size = 0;
+                        try (InputStream in = Updater.open(url); FileOutputStream out = new FileOutputStream(tmp)) {
+                            byte[] buf = new byte[64 * 1024];
+                            for (int n; (n = in.read(buf)) > 0; ) {
+                                size += n;
+                                if (size > MAX_BYTES) throw new Exception("picture too big");
+                                out.write(buf, 0, n);
+                            }
+                        }
+                        // Only real wallpapers: a logo, a thumbnail or a portrait picture would look wrong full screen.
+                        BitmapFactory.Options o = new BitmapFactory.Options();
+                        o.inJustDecodeBounds = true;
+                        BitmapFactory.decodeFile(tmp.getPath(), o);
+                        if (!Pictures.suitable(o.outWidth, o.outHeight)) {
+                            tmp.delete();
+                            throw new Exception("not a wallpaper picture: " + o.outWidth + "x" + o.outHeight);
+                        }
+                        if (!tmp.renameTo(file(c, name))) throw new Exception("couldn't keep the picture");
+                        p.edit().putLong("daily_at_" + name, System.currentTimeMillis()).putString("daily_credit_" + name, credit).apply();
+                        new Handler(Looper.getMainLooper()).post(changed);
+                        break;
+                    } catch (Exception e) {
+                        // Too big, or not a wallpaper: the next address, if there is one.
                     }
                 }
-                // Only real wallpapers: a logo, a thumbnail or a portrait picture would look wrong full screen.
-                BitmapFactory.Options o = new BitmapFactory.Options();
-                o.inJustDecodeBounds = true;
-                BitmapFactory.decodeFile(tmp.getPath(), o);
-                if (!Pictures.suitable(o.outWidth, o.outHeight)) {
-                    tmp.delete();
-                    throw new Exception("not a wallpaper picture: " + o.outWidth + "x" + o.outHeight);
-                }
-                if (!tmp.renameTo(file(c, name))) throw new Exception("couldn't keep the picture");
-                p.edit().putLong("daily_at_" + name, System.currentTimeMillis()).putString("daily_credit_" + name, credit).apply();
-                new Handler(Looper.getMainLooper()).post(changed);
             } catch (Exception e) {
                 // Offline, or today's entry isn't a picture: the wallpaper stays as it is, and it's tried again later.
             } finally {

@@ -90,7 +90,7 @@ final class SettingsPages {
     static final Setting[] UPDATE_SETTINGS = {
         new Setting("update_now", "Check for updates", "", null, null), // not a value: OK checks now, the row shows the result
         new Setting("update_check", "Automatic update check", "daily", new String[] {"daily", "off"}, OFF_ON_SHOWN_REV),
-        new Setting("update_install", "Install update", "", null, null), // only while a newer release is known (updateRows)
+        new Setting("update_install", "Install update", "", null, null), // shown only while a newer release is known (openSettingsPage)
     };
     static final Setting[] SETTINGS = {
         new Setting("lang", "Language", "auto", new String[] {"auto", "en", "de"}, new String[] {"Auto", "English", "Deutsch"}),
@@ -149,13 +149,6 @@ final class SettingsPages {
         try { return s.pm.getPackageInfo(s.ctx.getPackageName(), 0).versionName; } catch (Exception e) { return ""; }
     }
 
-    // The Updates page as it is now: the install row is left out while no newer release is known.
-    Setting[] updateRows() {
-        List<Setting> rows = new ArrayList<>();
-        for (Setting st : UPDATE_SETTINGS) if (!"update_install".equals(st.key) || Updater.available(s.ctx) != null) rows.add(st);
-        return rows.toArray(new Setting[0]);
-    }
-
     // One page of settings: a list of rows. Some rows open a page of their own.
     void openSettingsPage(String titleText, final Setting[] rows, View anchor, boolean top) {
         FrameLayout layer = new FrameLayout(s.ctx);
@@ -183,10 +176,12 @@ final class SettingsPages {
             redraw.add(() -> {
                 label.setText(L.t(st.label));
                 value.setText(settingValue(st));
+                // Shown as soon as a check finds a newer release, not only on the next open of this page.
+                if ("update_install".equals(st.key)) row.setVisibility(Updater.available(s.ctx) == null ? View.GONE : View.VISIBLE);
             });
             row.setOnClickListener(v -> {
                 if (st.sub != null) {
-                    openSettingsPage(st.label, st.sub == UPDATE_SETTINGS ? updateRows() : st.sub, v, false);
+                    openSettingsPage(st.label, st.sub, v, false);
                 } else if ("hidden_apps_open".equals(st.key)) {
                     s.openHidden(v);
                 } else if ("update_now".equals(st.key)) {
@@ -201,6 +196,9 @@ final class SettingsPages {
                     installStatus = L.t("Downloading…");
                     settingsRefresh.run();
                     Updater.install(s.ctx, () -> {
+                        installStatus = L.t("Confirm on the TV");
+                        settingsRefresh.run();
+                    }, () -> {
                         installStatus = L.t("Couldn't download");
                         settingsRefresh.run();
                     });

@@ -261,8 +261,9 @@ public class HomeService extends AccessibilityService {
     void runHudChoice(int which) {
         try {
             switch (which) {
-                case QuickMenu.HUD_PROFILE:
-                    break; // done by pressing Amazon's tile: see closeHud
+                case QuickMenu.HUD_PROFILE: // only reached when Amazon's tile could not be pressed (see closeHud)
+                    android.widget.Toast.makeText(this, L.t("Couldn't open that"), android.widget.Toast.LENGTH_SHORT).show();
+                    break;
                 case QuickMenu.HUD_APPS:
                     startActivity(new Intent(this, MainActivity.class).putExtra("open", "apps")
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION));
@@ -285,7 +286,7 @@ public class HomeService extends AccessibilityService {
                     break;
             }
         } catch (RuntimeException e) {
-            android.widget.Toast.makeText(this, "Couldn't open that", android.widget.Toast.LENGTH_SHORT).show();
+            android.widget.Toast.makeText(this, L.t("Couldn't open that"), android.widget.Toast.LENGTH_SHORT).show();
         }
     }
 

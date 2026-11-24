@@ -16,6 +16,7 @@ final class L {
     static {
         String[][] m = {
             {"Couldn't open that app", "Die App konnte nicht geöffnet werden"},
+            {"Couldn't open that", "Das konnte nicht geöffnet werden"},
             {"← → Move", "← → Verschieben"},
             {"↑ ↓ Menu", "↑ ↓ Menü"},
             {"Menu key: Folder with %s", "Menü-Taste: Ordner mit %s"},
@@ -51,6 +52,7 @@ final class L {
             {"Check failed", "Suche fehlgeschlagen"},
             {"Downloading…", "Wird geladen…"},
             {"Couldn't download", "Download fehlgeschlagen"},
+            {"Confirm on the TV", "Am Fernseher bestätigen"},
 
             {"Settings", "Einstellungen"},
             {"Language", "Sprache"},

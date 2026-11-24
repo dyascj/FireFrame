@@ -93,8 +93,13 @@ public class Updater extends BroadcastReceiver {
         }
     }
 
-    // Downloads the APK straight into an install session. Runs failed on the main thread if that fails.
     static void install(final Context c, final Runnable failed) {
+        install(c, () -> { }, failed);
+    }
+
+    // Downloads the APK straight into an install session. started runs once the installer has it, failed if that
+    // fails; both on the main thread.
+    static void install(final Context c, final Runnable started, final Runnable failed) {
         final String url = prefs(c).getString("update_url", null);
         new Thread(() -> {
             PackageInstaller pi = c.getPackageManager().getPackageInstaller();
@@ -111,6 +116,7 @@ public class Updater extends BroadcastReceiver {
                 int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? 0x02000000 : 0);
                 s.commit(PendingIntent.getBroadcast(c, id, new Intent(c, Updater.class), flags).getIntentSender());
                 s.close();
+                new Handler(Looper.getMainLooper()).post(started);
             } catch (Exception e) {
                 if (id >= 0) pi.abandonSession(id);
                 new Handler(Looper.getMainLooper()).post(failed);
@@ -126,8 +132,9 @@ public class Updater extends BroadcastReceiver {
             Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
             if (confirm != null) c.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } else if (status != PackageInstaller.STATUS_SUCCESS && status != PackageInstaller.STATUS_FAILURE_ABORTED) {
-            // A different signing key: the installer refuses, and the message can say why.
-            boolean otherKey = status == PackageInstaller.STATUS_FAILURE_CONFLICT || status == PackageInstaller.STATUS_FAILURE_INCOMPATIBLE;
+            // A different signing key: the installer refuses, and the message can say why. (Incompatible means
+            // minSdk or ABI, so it gets the generic message.)
+            boolean otherKey = status == PackageInstaller.STATUS_FAILURE_CONFLICT;
             String text = otherKey
                     ? L.t("This FireFrame was signed by someone else, so Android can't update it from the releases. Install the release APK once, or build and publish your own.")
                     : String.format(L.t("FireFrame couldn't update: %s"), i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE));
