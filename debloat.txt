@@ -96,7 +96,8 @@ updates    com.amazon.tv.forcedotaupdater.v2        # forced updates
 
 # More telemetry, found on Fire OS 8.1.5.8 (AFTMA08C15) by reading each package's components and
 # permissions, and by seeing which of them run and talk to the network on an idle stick. Fire OS may refuse
-# some of these ("Fire OS refused"); the script skips those. Not in "safe" because they go deeper than
+# some of these ("Fire OS refused"); the script skips those. On Fire OS 8.1.8.6 it refused adep, diode,
+# device.metrics, usagestats.proxy and arcus.proxy ("protected package"). Not in "safe" because they go deeper than
 # the groups above, and a Settings page or a feature could depend on one on another model.
 telemetry  com.amazon.adep                          # event analyzers, sync schedule (runs in the background)
 telemetry  com.amazon.ceviche                       # event tracking pipeline, remote configuration sync

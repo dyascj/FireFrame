@@ -291,7 +291,8 @@ undo)
   connect
   list=$( { [ -f "$LOG" ] && cat "$LOG"; tv cat $TVLOG 2>/dev/null; } | sort -u)
   if [ -n "$list" ]; then
-    for pkg in $list; do tv pm enable "$pkg" >/dev/null && echo "turned on  $pkg"; done
+    # Packages Fire OS refused to turn off were never off: their "enable" answers with an error, which is not shown.
+    for pkg in $list; do tv pm enable "$pkg" 2>&1 | grep -q "new state" && echo "turned on  $pkg"; done
     rm -f "$LOG"; tv rm -f $TVLOG
   else
     echo "No record of what was turned off, so turning on everything in debloat.txt."

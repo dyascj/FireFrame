@@ -133,7 +133,7 @@ Prefer not to build? Download the APK from [Releases](https://github.com/dyascj/
 ./fireframe.sh debloat 192.168.1.50 --list             # what's on and off right now
 ```
 
-Apps are disabled, not deleted. [debloat.txt](debloat.txt) lists every package with a note on what it is.
+Apps are disabled, not deleted. [debloat.txt](debloat.txt) lists every package with a note on what it is. Fire OS protects some packages and refuses to turn them off (on Fire OS 8.1.8.6, 9 of the 39 in `safe`, `telemetry` and `screensaver`); the script says "Fire OS refused" for those and goes on. The memory of turned-off apps is freed when the TV restarts.
 
 | Group | What turns off | What you lose |
 | --- | --- | --- |

@@ -78,6 +78,17 @@ public class Tests {
         check("remove drops empty items", CsvList.remove("a,,b", "a").equals("b"));
         check("add then remove is empty", CsvList.remove(CsvList.add("", "x"), "x").isEmpty());
 
+        // NightMath (the night schedule)
+        check("23:00 is night from 22 to 6", NightMath.inWindow(23, 22, 6));
+        check("0:00 and 3:00 are night from 22 to 6", NightMath.inWindow(0, 22, 6) && NightMath.inWindow(3, 22, 6));
+        check("22:00 is the first night hour", NightMath.inWindow(22, 22, 6));
+        check("6:00 is already day", !NightMath.inWindow(6, 22, 6));
+        check("noon and 21:00 are day", !NightMath.inWindow(12, 22, 6) && !NightMath.inWindow(21, 22, 6));
+        check("the other choices: 20 to 8", NightMath.inWindow(20, 20, 8) && NightMath.inWindow(7, 20, 8) && !NightMath.inWindow(8, 20, 8) && !NightMath.inWindow(19, 20, 8));
+        check("a window inside one day", NightMath.inWindow(13, 12, 14) && !NightMath.inWindow(14, 12, 14) && !NightMath.inWindow(11, 12, 14));
+        check("every hour is day or night, never both ends open",
+                java.util.stream.IntStream.range(0, 24).filter(h -> NightMath.inWindow(h, 22, 6)).count() == 8);
+
         if (failed > 0) { System.out.println(failed + " failed"); System.exit(1); }
         System.out.println("All checks passed");
     }

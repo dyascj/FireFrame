@@ -33,7 +33,7 @@ final class Look {
     boolean inNightWindow() {
         int from = parseInt(s.prefs.getString("night_from", "22"), 22), until = parseInt(s.prefs.getString("night_until", "6"), 6);
         int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        return from > until ? (h >= from || h < until) : (h >= from && h < until);
+        return NightMath.inWindow(h, from, until);
     }
 
     static int parseInt(String v, int def) {
