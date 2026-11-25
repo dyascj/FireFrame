@@ -1,6 +1,8 @@
 #!/bin/sh
 # FireFrame: a clean home screen for Amazon Fire TV, installed over Wi-Fi with adb.
 #
+#   ./fireframe.sh setup     <tv-ip>             guided: explains every option and asks what you want
+#                                                (install, debloat groups, FireFrame's settings). Start here.
 #   ./fireframe.sh install   <tv-ip>             build, install, take over the Home button, open it
 #   ./fireframe.sh debloat   <tv-ip> [--dry-run] turn off Amazon ads, tracking and junk ("safe" in debloat.txt)
 #   ./fireframe.sh debloat   <tv-ip> --also alexa,primevideo   also these groups from debloat.txt (or --all)
@@ -14,9 +16,10 @@
 # Nothing is ever deleted from the TV. Apps are disabled, and undo turns them back on.
 set -e
 cd "$(dirname "$0")"
+SELF=$(pwd)/$(basename "$0") # for the setup guide, which calls this script again
 
 CMD=$1; IP=$2
-[ -n "$CMD" ] && [ -n "$IP" ] || { sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+[ -n "$CMD" ] && [ -n "$IP" ] || { sed -n '3,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 case "$IP" in *:*|emulator-*) ;; *) IP=$IP:5555 ;; esac
 
 PKG=com.fireframe.home
@@ -70,9 +73,7 @@ home_off() {
   else tv settings delete secure enabled_accessibility_services >/dev/null; fi
 }
 
-case "$CMD" in
-install)
-  connect
+do_install() {
   [ -f out/fireframe.apk ] || ./build.sh
   "$ADB" -s "$IP" install -r out/fireframe.apk
   home_on
@@ -86,6 +87,90 @@ install)
   fi
   tv am start -n $PKG/.MainActivity >/dev/null 2>&1
   echo "FireFrame is on the TV. Press Home on the remote to check it comes back."
+}
+
+case "$CMD" in
+install)
+  connect
+  do_install
+  ;;
+
+setup)
+  connect
+  say() { printf '\n%s\n' "$*"; }
+  # yes <question> <y|n>: Enter takes the default.
+  yes() {
+    while :; do
+      printf '%s [%s] ' "$1" "$([ "$2" = y ] && echo Y/n || echo y/N)"; read -r a || a=""
+      case "${a:-$2}" in y|Y|yes) return 0 ;; n|N|no) return 1 ;; esac
+    done
+  }
+  # pick <key> <title> <text> <option-value=Label>...: prints the explanation and the choices, Enter keeps what is set now.
+  chosen=""
+  pick() {
+    key=$1; title=$2; text=$3; shift 3
+    printf '\n== %s ==\n%s\n' "$title" "$text"
+    i=0; for o in "$@"; do i=$((i + 1)); printf '  %d) %s\n' $i "${o#*=}"; done
+    while :; do
+      printf 'Number, or Enter to keep what is set now: '; read -r a || a=""
+      [ -z "$a" ] && return 0
+      case "$a" in *[!0-9]*|0) continue ;; esac
+      [ "$a" -le $# ] || continue
+      v=$(eval "echo \"\${$a}\""); chosen="$chosen${chosen:+,}$key=${v%%=*}"; return 0
+    done
+  }
+
+  say "FireFrame setup. Every step says what an option does. Enter skips a step and changes nothing."
+  if ! tv pm list packages "$PKG" | grep -q -x "package:$PKG"; then
+    yes "FireFrame is not on this TV yet. Install it now?" y && do_install || exit 0
+  fi
+
+  say "PART 1: Amazon's built-in apps. Nothing is deleted; apps are only turned off, and 'undo' turns them back on."
+  also=""
+  group() { # group <name> <default y|n> <what> <what you lose>
+    n=$(grep -v '^[[:space:]]*#' debloat.txt | while read -r g p _; do
+          [ "$g" = "$1" ] && tv pm list packages -e "$p" | grep -q -x "package:$p" && echo x
+        done | wc -l | tr -d ' ')
+    [ "$n" -gt 0 ] || return 0
+    printf '\n== %s (%s apps on this TV) ==\n%s\nWhat you lose: %s\n' "$1" "$n" "$3" "$4"
+    if yes "Turn them off?" "$2"; then also="$also${also:+,}$1"; fi
+  }
+  group safe y "Ads, tracking, usage reports, shopping, game and Kids apps, recommendation rows. This is what most people want." "Nothing most people use. Amazon's own recommendation rows, which FireFrame doesn't show anyway."
+  group telemetry n "More background reporting found on Fire OS 8: event pipelines, remote configuration, surveys, advertising ID." "Nothing visible. Not in 'safe' because it goes deeper and was only checked on one model."
+  group screensaver n "Amazon's screensaver and ambient mode, which fetch pictures from Amazon's servers." "The TV just goes dark or to sleep as set in Fire TV's settings."
+  group alexa n "Alexa and Whole Home Audio." "Voice search on the remote's microphone button stops working."
+  group amazonapps n "Amazon Music, Photos, Silk Browser, IMDb TV." "Those apps."
+  group primevideo n "Prime Video, the biggest app in memory, even when you don't watch it." "Prime Video, which you can still turn on again with 'undo'."
+  group youtube n "Amazon's YouTube app (about 87 MB in memory)." "YouTube on this TV, and casting to it from the YouTube phone app."
+  group casting n "Fire TV's own screen mirroring and 'fling' receiver." "Mirroring to this TV (Netflix and YouTube casting keep working)."
+  group livetv n "Amazon's Live TV guide, which wakes channel apps in the background." "The Live TV guide; the channel apps keep working."
+  group updates n "Automatic system updates: fewer surprises." "Security fixes. Not recommended unless you know why you want it."
+  if [ -n "$also" ]; then
+    say "Selected: $also"
+    yes "Show what would be turned off first?" y && sh "$SELF" debloat "$IP" --dry-run --also "$also"
+    yes "Turn them off now?" y && sh "$SELF" debloat "$IP" --also "$also"
+  else
+    say "Nothing selected: Amazon's apps stay as they are."
+  fi
+
+  say "PART 2: FireFrame's own settings. Everything can be changed later in FireFrame's Settings (top right)."
+  pick lang "Language" "The language of FireFrame's menus. Default: Auto (follows the TV)." auto=Auto en=English de=Deutsch
+  pick clock "Clock" "12 or 24 hours. Default: Auto." auto=Auto 12="12-hour" 24="24-hour"
+  pick date "Date" "Shows today's date under the clock. Default: off." off=Off on=On
+  pick bg_source "Background" "Where the wallpaper comes from. Built-in pictures work offline. Wikimedia or NASA picture of the day downloads one picture a day (up to 12 MB) and shows the TV's IP address to that site. Default: all." all=All builtin="Built-in only" wiki="Wikimedia picture of the day" nasa="NASA picture of the day"
+  pick night "Night mode" "A warm, dark veil for the evening with a moon button. Manual: you turn it on. Schedule: 22:00 to 6:00 (changeable). Almost no resources. Default: off." off=Off manual=Manual schedule=Schedule
+  pick dock_size "Dock size" "Compact tiles show more of the wallpaper. Default: normal." normal=Normal compact=Compact
+  pick labels "App names" "Names under the apps. Default: always." always=Always focus="Only under the selected app" never=Never
+  pick hud "Quick menu (Beta)" "A long press on Home opens FireFrame's own menu instead of Amazon's (Profiles, Apps, Sleep, Mirror display, Settings). New: Amazon's menu may flash for a moment first. Off leaves Amazon's menu alone. Default: off." off=Off on=On
+  if [ -n "$chosen" ]; then
+    tv am start -W -n $PKG/.MainActivity --es set "$chosen" >/dev/null 2>&1
+    echo "Set: $chosen"
+  fi
+  printf '\n== Weather ==\nShows the weather under the clock. The city'"'"'s coordinates go to open-meteo.com (a free service) about every 30 minutes, which shows the TV'"'"'s IP address to it. Default: off.\n'
+  printf 'City name, or Enter to skip: '; read -r city || city=""
+  [ -z "$city" ] || sh "$SELF" weather "$IP" "$city"
+
+  say "Done. Your own photos as wallpaper: ./fireframe.sh wallpaper $IP <photo or folder>. Undo everything: ./fireframe.sh undo $IP"
   ;;
 
 debloat)
@@ -214,5 +299,5 @@ undo)
 
 memory) connect; memory ;;
 
-*) sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+*) sed -n '3,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

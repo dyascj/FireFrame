@@ -41,6 +41,7 @@ public class MainActivity extends Activity {
         HomeService.pausedUntil = 0;
         HomeWatcher.start(this);
         screen.onShown(false);
+        screen.post(screen.welcome::startIfFresh);
         // Once this has drawn, the overlay covering Amazon's launcher can step aside. Not sooner, or
         // Amazon's launcher shows through for a moment.
         screen.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {

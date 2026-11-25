@@ -246,6 +246,8 @@ for i in 1 2 3 4 5 6 7 8 9 10; do key KEYCODE_DPAD_DOWN; done
 for row in "Quick menu|Schnellmenü" "Block Amazon home screen|Amazon-Startbildschirm sperren"; do
   check "settings row: ${row%%|*}" assert_text "$row"
 done
+key KEYCODE_DPAD_DOWN
+check "settings row: Setup guide" assert_text "Setup guide|Einrichtungsassistent"
 key KEYCODE_HOME; sleep 8
 check "back on home after settings" assert_front $PKG
 ensure_front
@@ -307,6 +309,16 @@ key KEYCODE_BACK; sleep 1
 check "move hint gone (Verschieben)" assert_no_text "Verschieben"
 check "move hint gone (Move)" assert_no_text "Move"
 check "back on FireFrame after move mode" assert_front $PKG
+ensure_front
+
+# 7b. The setup guide opens with the intent that fireframe.sh setup uses; only Back is pressed, so nothing is chosen.
+key KEYCODE_HOME; sleep 8
+tv am start -n $PKG/.MainActivity --es welcome run >/dev/null 2>&1; sleep 3
+check "setup guide: first screen" assert_text "Welcome to FireFrame|Willkommen bei FireFrame"
+check "setup guide: choices" assert_text "Set up|Einrichten"
+key KEYCODE_BACK
+check "setup guide closes with Back" assert_no_text "Welcome to FireFrame|Willkommen bei FireFrame"
+check "back on FireFrame after the guide" assert_front $PKG
 ensure_front
 
 # 8. Memory stays under 200 MB.

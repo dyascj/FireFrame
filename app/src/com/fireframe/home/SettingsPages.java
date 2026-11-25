@@ -105,6 +105,7 @@ final class SettingsPages {
         new Setting("amazon_block", "Block Amazon home screen", "on", new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
         new Setting("Updates", UPDATE_SETTINGS),
         new Setting("hud", "Quick menu (Beta)", QuickMenu.HUD_DEFAULT, new String[] {"on", "off"}, OFF_ON_SHOWN_REV),
+        new Setting("welcome_open", "Setup guide", "", null, null), // not a value: OK opens the guide (Welcome)
     };
 
     String settingValue(Setting st) {
@@ -113,6 +114,7 @@ final class SettingsPages {
             int n = s.hiddenMap().size();
             return n == 0 ? "›" : String.valueOf(n);
         }
+        if ("welcome_open".equals(st.key)) return "›";
         if ("update_now".equals(st.key)) return checkStatus != null ? checkStatus : currentVersion();
         if ("update_install".equals(st.key)) return installStatus != null ? installStatus : Updater.available(s.ctx);
         if (st.values == null) {
@@ -126,7 +128,25 @@ final class SettingsPages {
     // Moves a setting to its next value and applies it.
     void cycle(Setting st) {
         int i = Arrays.asList(st.values).indexOf(s.prefs.getString(st.key, st.def));
-        String next = st.values[(i + 1) % st.values.length];
+        set(st, st.values[(i + 1) % st.values.length]);
+    }
+
+    // The setting named key, also inside the sub pages; null if there is none.
+    static Setting find(String key) {
+        return find(SETTINGS, key);
+    }
+
+    private static Setting find(Setting[] rows, String key) {
+        for (Setting st : rows) {
+            if (key.equals(st.key)) return st;
+            Setting in = st.sub == null ? null : find(st.sub, key);
+            if (in != null) return in;
+        }
+        return null;
+    }
+
+    // Stores a value and applies it.
+    void set(Setting st, String next) {
         s.prefs.edit().putString(st.key, next).apply();
         if (st.key.equals("lang")) L.lang = next;
         if (st.key.equals("slide")) s.prefs.edit().putLong("slide_at", System.currentTimeMillis()).apply();
@@ -187,6 +207,8 @@ final class SettingsPages {
                     openSettingsPage(st.label, st.sub, v, false);
                 } else if ("hidden_apps_open".equals(st.key)) {
                     s.openHidden(v);
+                } else if ("welcome_open".equals(st.key)) {
+                    s.welcome.start();
                 } else if ("update_now".equals(st.key)) {
                     checkStatus = L.t("Checking…");
                     settingsRefresh.run();

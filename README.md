@@ -91,6 +91,14 @@ My Fire TV's IP address is <ip address>. It's a <model, from Settings > My Fire 
 6. Check that pressing Home opens FireFrame, and tell me how to undo everything.
 ```
 
+## Guided setup (recommended)
+
+```sh
+./fireframe.sh setup 192.168.1.50
+```
+
+A step-by-step guide on your computer: it installs FireFrame if needed, then explains each group of Amazon apps (what turns off, what you lose, how many are on your TV) and asks before changing anything. It then explains each FireFrame option (language, clock, date, weather, background, night mode, dock, quick menu) and sets what you pick. Enter skips a step and changes nothing. The same options are explained in FireFrame itself: it opens a **setup guide** on the TV on a fresh install (also under **Settings > Setup guide**), and its last screen tells you the command above for the part only a computer can do (turning off Amazon's apps).
+
 ## Install it by hand
 
 You need `adb` and, to build it yourself, Java 17 and the Android SDK. On a Mac:
@@ -132,6 +140,7 @@ Apps are disabled, not deleted. [debloat.txt](debloat.txt) lists every package w
 | `safe` (always) | ads, automatic content recognition, recommendations, shopping, News, telemetry, demo mode, tutorials, Amazon Kids, Luna, Wi-Fi password sync, coral reef and jellyfish screensaver apps that ship a proxy SDK | nothing you'd use |
 | `alexa` | Alexa and its media, calling, smart home and multi-room audio services | voice search on the mic button |
 | `primevideo` | Prime Video | Prime Video |
+| `youtube` | Amazon's YouTube app (about 87 MB in memory) | YouTube on this TV, and casting to it from the YouTube phone app |
 | `livetv` | Amazon's Live TV guide | the guide. Channel apps like Tubi and Fubo still work on their own. |
 | `amazonapps` | Amazon Music, Amazon Photos, Silk Browser, IMDb TV | those apps |
 | `telemetry` | more analytics and tracking: event pipelines, usage statistics, advertising ID, surveys, promotions | nothing you'd use. Goes deeper than `safe`, so Fire OS may refuse some, and they are skipped |
@@ -286,7 +295,7 @@ It could. If Home stops opening FireFrame after an update, run `./fireframe.sh i
 | `app/src/.../Weather.java`, `L.java` | the weather, and the English and German texts |
 | `test.sh` | checks the plain Java parts (version compare, weather codes, translations) with just a JDK |
 | `build.sh` | builds the APK with the SDK's own tools, no Gradle, in about ten seconds |
-| `fireframe.sh` | install, debloat, wallpaper, memory and undo |
+| `fireframe.sh` | guided setup, install, debloat, wallpaper, weather, memory and undo |
 | `debloat.txt` | every package the debloat can turn off, with notes |
 
 ## Credits

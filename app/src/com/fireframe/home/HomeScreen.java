@@ -123,6 +123,7 @@ public class HomeScreen extends FrameLayout {
     final MoveMode move = new MoveMode(this);
     final QuickMenu hud = new QuickMenu(this);
     final Folders folders = new Folders(this);
+    final Welcome welcome = new Welcome(this);
     final List<ObjectAnimator> wiggles = new ArrayList<>(); // tiles wiggling while their menu is open
     final List<View> wiggling = new ArrayList<>();
     TextView moveHint;
@@ -292,15 +293,24 @@ public class HomeScreen extends FrameLayout {
     // fireframe.sh wallpaper starts the app with --es wallpaper custom (or a bundled name), and
     // --es from <photo in /data/local/tmp>: since Android 11 adb can't write into the app's folder.
     // More extras, for fireframe.sh: --es fromdir <folder of photos in /data/local/tmp> for the slideshow,
-    // --es slide <minutes>, and --es weather_city <city or off>.
+    // --es slide <minutes>, --es weather_city <city or off>, and --es welcome run for the setup guide, and --es set key=value,key=value for any setting with a list of values.
     void applyExtras(Intent intent) {
         String w = intent == null ? null : intent.getStringExtra("wallpaper");
         String from = intent == null ? null : intent.getStringExtra("from");
         String fromDir = intent == null ? null : intent.getStringExtra("fromdir");
         String slide = intent == null ? null : intent.getStringExtra("slide");
         String city = intent == null ? null : intent.getStringExtra("weather_city");
+        if (intent != null && "run".equals(intent.getStringExtra("welcome"))) post(welcome::start); // from fireframe.sh setup
         if (intent != null && "apps".equals(intent.getStringExtra("open"))) { // from the quick menu
             post(() -> { if (layers.isEmpty() && move.moving == null) openDrawer(dockRow.getChildCount() > 0 ? dockRow.getChildAt(0) : base); });
+        }
+        String set = intent == null ? null : intent.getStringExtra("set"); // "night=manual,dock_size=compact"
+        if (set != null) {
+            for (String kv : set.split(",")) {
+                String[] p = kv.split("=", 2);
+                SettingsPages.Setting st = SettingsPages.find(p[0]);
+                if (p.length == 2 && st != null && st.values != null && Arrays.asList(st.values).contains(p[1])) settings.set(st, p[1]);
+            }
         }
         if (slide != null && Arrays.asList(SettingsPages.SLIDE_VALUES).contains(slide)) {
             prefs.edit().putString("slide", slide).putLong("slide_at", System.currentTimeMillis()).apply();

@@ -78,6 +78,9 @@ amazonapps com.amazon.bueller.photos                # Amazon Photos
 amazonapps com.amazon.cloud9                        # Silk Browser
 amazonapps com.amazon.imdb.tv.android.app           # IMDb TV (Freevee), the app with ads
 
+# Amazon's YouTube app: big in memory. Casting from the YouTube phone app to this TV stops too.
+youtube    com.amazon.firetv.youtube                # YouTube (Amazon's app)
+
 # Fire TV's own screen mirroring and "fling" (Netflix and YouTube casting keep working)
 casting    com.amazon.cast.sink                     # Display Mirroring
 casting    com.amazon.awvflingreceiver              # Amazon's built-in cast receiver
