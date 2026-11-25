@@ -148,7 +148,7 @@ final class SettingsPages {
     // Stores a value and applies it.
     void set(Setting st, String next) {
         s.prefs.edit().putString(st.key, next).apply();
-        if (st.key.equals("lang")) L.lang = next;
+        if (st.key.equals("lang")) { L.lang = next; s.buildDock(); } // folder names and labels come out in the new language
         if (st.key.equals("slide")) s.prefs.edit().putLong("slide_at", System.currentTimeMillis()).apply();
         if (st.key.equals("weather") || st.key.equals("temp")) s.prefs.edit().putLong("weather_at", 0).apply(); // fetch again now
         s.look.applyGlass();
