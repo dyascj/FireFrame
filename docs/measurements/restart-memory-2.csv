@@ -1,0 +1,16 @@
+phase,n,MemAvailableMB,MemFreeMB,MemTotalMB,processes,wakefulness,focus,big_app_procs,disabled
+B2,1,554,41,1669,310,Awake,android,big_app_procs=10,disabled=36
+B2,2,565,38,1669,308,Awake,com.fireframe.home/com.fireframe.home.MainActivity,big_app_procs=10,disabled=36
+B2,3,571,43,1669,308,Asleep,  mCurrentFocus=null,big_app_procs=10,disabled=36
+B2,4,569,37,1669,308,Asleep,  mCurrentFocus=null,big_app_procs=10,disabled=36
+B2,5,586,52,1669,308,Asleep,  mCurrentFocus=null,big_app_procs=10,disabled=36
+B3,1,553,63,1669,304,Awake,android,big_app_procs=9,disabled=36
+B3,2,568,76,1669,304,Awake,android,big_app_procs=9,disabled=36
+B3,3,572,67,1669,304,Awake,com.fireframe.home/com.fireframe.home.MainActivity,big_app_procs=9,disabled=36
+B3,4,565,35,1669,304,Awake,com.fireframe.home/com.fireframe.home.MainActivity,big_app_procs=7,disabled=36
+B3,5,564,38,1669,304,Awake,com.fireframe.home/com.fireframe.home.MainActivity,big_app_procs=7,disabled=36
+C3,1,592,59,1669,307,Awake,android,big_app_procs=6,disabled=0
+C3,2,612,70,1669,306,Awake,android,big_app_procs=6,disabled=0
+C3,3,615,59,1669,306,Awake,com.fireframe.home/com.fireframe.home.MainActivity,big_app_procs=6,disabled=0
+C3,4,619,60,1669,306,Awake,com.fireframe.home/com.fireframe.home.MainActivity,big_app_procs=6,disabled=0
+C3,5,613,38,1669,306,Awake,com.fireframe.home/com.fireframe.home.MainActivity,big_app_procs=6,disabled=0

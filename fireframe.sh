@@ -176,7 +176,7 @@ setup)
   group safe y "Ads, tracking, usage reports, shopping, game and Kids apps, recommendation rows. This is what most people want." "Nothing most people use. Amazon's own recommendation rows, which FireFrame doesn't show anyway."
   group telemetry n "More background reporting found on Fire OS 8: event pipelines, remote configuration, surveys, advertising ID." "Nothing visible. Not in 'safe' because it goes deeper and was only checked on one model."
   group screensaver n "Amazon's screensaver and ambient mode, which fetch pictures from Amazon's servers." "The TV just goes dark or to sleep as set in Fire TV's settings."
-  group alexa n "Alexa and Whole Home Audio." "Voice search on the remote's microphone button stops working."
+  group alexa n "Alexa and Whole Home Audio." "Voice search on the remote's microphone button stops working. Some users also report an 'Unable to detect your remote' message."
   group amazonapps n "Amazon Music, Photos, Silk Browser, IMDb TV." "Those apps."
   group primevideo n "Prime Video, the biggest app in memory, even when you don't watch it." "Prime Video, which you can still turn on again with 'undo'."
   group youtube n "Amazon's YouTube app (about 87 MB in memory)." "YouTube on this TV, and casting to it from the YouTube phone app."

@@ -246,6 +246,8 @@ for i in 1 2 3 4 5 6 7 8 9 10; do key KEYCODE_DPAD_DOWN; done
 for row in "Quick menu|Schnellmenü" "Block Amazon home screen|Amazon-Startbildschirm sperren"; do
   check "settings row: ${row%%|*}" assert_text "$row"
 done
+# Quick menu (Beta) is Off by default: remember how it is set, section 6 turns it on for its checks and puts it back.
+HUD_WAS=$(screen_text | grep -A1 -E '^(Quick menu|Schnellmenü)' | sed -n 2p)
 key KEYCODE_DPAD_DOWN
 check "settings row: Setup guide" assert_text "Setup guide|Einrichtungsassistent"
 key KEYCODE_HOME; sleep 8
@@ -283,6 +285,7 @@ key KEYCODE_BACK; sleep 1
 ensure_front
 
 # 6. The quick menu (HUD) shows its five choices. One Back closes it, and Amazon's menu must not come back.
+case "$HUD_WAS" in Off|Aus) tv "am start -n $PKG/.MainActivity --es set hud=on" >/dev/null; sleep 3 ;; esac
 tv "am start -a com.amazon.device.settings.action.SHOW_HUD" >/dev/null; sleep 4
 check "quick menu: Profile" assert_text "Profile|Profil"
 check "quick menu: Apps" assert_text "Apps"
@@ -293,6 +296,7 @@ key KEYCODE_BACK
 check "Amazon's menu does not come back after Back" no_amazon_menu
 check "back on FireFrame after quick menu" assert_front $PKG
 check "quick menu activity closed" hud_gone
+case "$HUD_WAS" in Off|Aus) tv "am start -n $PKG/.MainActivity --es set hud=off" >/dev/null; sleep 2 ;; esac
 ensure_front
 
 # 7. Move mode: long-press OK on a dock app. Back must leave it. The hint can't always be read: the tiles
