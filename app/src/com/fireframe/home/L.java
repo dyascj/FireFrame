@@ -98,6 +98,7 @@ final class L {
             {"Night strength", "Nachtmodus-Stärke"},
             {"Medium", "Mittel"},
             {"Strong", "Stark"},
+            {"Also in other apps (Beta)", "Auch in anderen Apps (Beta)"},
             {"Night from", "Nacht ab"},
             {"Night until", "Nacht bis"},
             {"Labels", "Beschriftung"},

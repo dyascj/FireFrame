@@ -75,6 +75,7 @@ final class SettingsPages {
     static final Setting[] NIGHT_SETTINGS = {
         new Setting("night", "Night mode", "off", new String[] {"off", "manual", "schedule"}, new String[] {"Off", "Manual", "Schedule"}),
         new Setting("night_strength", "Night strength", "medium", NIGHT_STRENGTHS, new String[] {"Light", "Medium", "Strong"}),
+        new Setting("night_all", "Also in other apps (Beta)", "off", OFF_ON, OFF_ON_SHOWN),
         new Setting("night_from", "Night from", "22", new String[] {"20", "21", "22", "23"}, new String[] {"20:00", "21:00", "22:00", "23:00"}),
         new Setting("night_until", "Night until", "6", new String[] {"5", "6", "7", "8"}, new String[] {"5:00", "6:00", "7:00", "8:00"}),
     };
@@ -136,6 +137,8 @@ final class SettingsPages {
         if (st.key.startsWith("night")) {
             s.prefs.edit().remove("night_ov").apply(); // a change of the setting overrides the moon button
             s.look.applyNight();
+            // The overlay's copy drives the veil over other apps; without this it would only hear of the change on its next minute.
+            if (HomeService.running != null && HomeService.running.overlay != null) HomeService.running.overlay.look.applyNight();
         }
         if (st.key.equals("bg_source")) s.wall.newSource();
         s.tick.run();

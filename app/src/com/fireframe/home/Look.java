@@ -62,6 +62,13 @@ final class Look {
         s.showCaption(L.t(target ? "Night mode on" : "Night mode off"));
     }
 
+    // The night veil's alpha for the chosen strength, or 0 when night mode is not on.
+    float nightAlpha() {
+        if (!nightActive()) return 0f;
+        int i = Arrays.asList(SettingsPages.NIGHT_STRENGTHS).indexOf(s.prefs.getString("night_strength", "medium"));
+        return SettingsPages.NIGHT_ALPHAS[Math.max(i, 0)];
+    }
+
     // Shows or hides the moon button and fades the night veil in or out.
     void applyNight() {
         boolean enabled = !"off".equals(s.prefs.getString("night", "off"));
@@ -70,10 +77,13 @@ final class Look {
             s.moonBtn.setVisibility(vis);
             s.fixTopFocus();
         }
-        boolean active = nightActive();
-        ((HudIcon) ((FrameLayout) s.moonBtn).getChildAt(0)).setFilled(active);
-        int i = Arrays.asList(SettingsPages.NIGHT_STRENGTHS).indexOf(s.prefs.getString("night_strength", "medium"));
-        float target = active ? SettingsPages.NIGHT_ALPHAS[Math.max(i, 0)] : 0f;
+        ((HudIcon) ((FrameLayout) s.moonBtn).getChildAt(0)).setFilled(nightActive());
+        float target = nightAlpha();
+        // "Also in other apps": one window above everything dims all of it, so this screen's own veil steps aside.
+        // Only the overlay copy drives that window, since the activity copy sits under it.
+        boolean all = "on".equals(s.prefs.getString("night_all", "off"));
+        if (s.ctx instanceof HomeService) HomeService.setNightVeil(all ? target : 0f);
+        if (all) target = 0f;
         if (target == nightShown) return;
         nightShown = target;
         s.nightScrim.animate().cancel();

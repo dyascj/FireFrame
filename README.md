@@ -192,6 +192,7 @@ Settings at the top right, then **FireFrame settings**. Press OK on a row to go 
 | Weather city | Type a city. Needs FireFrame opened from the app list, since the overlay after Home can't show the keyboard. Or from the computer: `./fireframe.sh weather <ip> "Berlin"` |
 | Temperature | Auto (°F in the US), °C, °F |
 | Slideshow | Off, 1 min, 5 min, 15 min, 1 hour. Cycles through every wallpaper and photo |
+| Night mode > Also in other apps (Beta) | Off, On. Also in other apps (Beta): dims everything with a window above all apps while it is night. Off by default because it uses extra resources; may not dim protected video on every device. |
 | Glass | Light, Normal, Dark. How dark the dock is |
 | Dock size | Normal, Compact. Compact tiles are smaller, so more fit on the dock |
 | Dynamic dock | Off, On. On: the dock is centred and only as wide as its apps, so one app gives a one-tile dock. It changes size like a drop of liquid |

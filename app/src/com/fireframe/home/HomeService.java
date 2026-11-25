@@ -45,6 +45,7 @@ public class HomeService extends AccessibilityService {
     WindowManager wm;
     WindowManager.LayoutParams lp;
     HomeScreen overlay;
+    View veil; // night mode over other apps (Look.applyNight): attached only while it is night and the setting is on
     boolean added, showing, hideWhenMenusClose, hudOpen;
     long hudClosedUntil; // while closing, Amazon's menu must not bring ours up again
     boolean safeToasted; // the "paused" message is shown once per service lifetime
@@ -102,6 +103,34 @@ public class HomeService extends AccessibilityService {
         if (running != null) running.hide();
     }
 
+    // Dims the whole screen, other apps included, while night mode is on for them. Not attached at all otherwise,
+    // so it costs nothing outside the night. Only added once the overlay exists, so it sits above it.
+    static void setNightVeil(float alpha) {
+        HomeService s = running;
+        if (s == null || s.overlay == null) return;
+        if (alpha <= 0) {
+            if (s.veil != null) {
+                try { s.wm.removeViewImmediate(s.veil); } catch (RuntimeException e) { /* already gone */ }
+            }
+            s.veil = null;
+            return;
+        }
+        if (s.veil == null) {
+            View v = new View(s);
+            v.setBackgroundColor(0xFF140A02); // the same warm dark as the overlay's own night veil
+            v.setAlpha(alpha);
+            WindowManager.LayoutParams vlp = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_FULLSCREEN
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, PixelFormat.TRANSLUCENT);
+            try { s.wm.addView(v, vlp); } catch (RuntimeException e) { return; } // tried again on the next night tick
+            s.veil = v;
+        }
+        s.veil.setAlpha(alpha);
+    }
+
     @Override
     protected void onServiceConnected() {
         running = this;
@@ -119,6 +148,7 @@ public class HomeService extends AccessibilityService {
     @Override
     public boolean onUnbind(Intent intent) {
         unregisterReceiver(homePressed);
+        setNightVeil(0); // needs running, so before it is cleared below
         if (added) wm.removeViewImmediate(overlay);
         added = false;
         running = null;

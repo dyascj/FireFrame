@@ -111,6 +111,14 @@ assert_text() {
   return 1
 }
 
+# Tap a top button until $3 (|-separated texts) is on screen: the first tap only focuses a button when
+# another one had the focus, the second one clicks it. Never more than two taps.
+tap_open() {
+  tap "$1" "$2"; sleep 1.5
+  has_any "$(screen_text)" "$3" && return 0
+  tap "$1" "$2"; sleep 1.5
+}
+
 # PASS if none of the texts is on screen.
 assert_no_text() {
   txt=$(screen_text)
@@ -209,7 +217,7 @@ no_amazon_home() {
 
 # Gear, then OK on the menu's first entry only: "Amazon home screen" in the same menu would leave FireFrame.
 open_settings() {
-  tap 1742 94; sleep 1.5
+  tap_open 1742 94 "FireFrame settings|FireFrame-Einstellungen"
   assert_text "FireFrame settings|FireFrame-Einstellungen" || return 1
   key KEYCODE_DPAD_CENTER
 }
@@ -266,7 +274,7 @@ check "back on home after dock and apps" assert_front $PKG
 ensure_front
 
 # 5. The grid button opens the app drawer. Back closes it.
-tap 1642 94; sleep 2
+tap_open 1642 94 "Apps"
 check "app drawer opens" assert_text "Apps"
 key KEYCODE_BACK; sleep 1
 ensure_front
