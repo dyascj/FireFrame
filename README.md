@@ -133,7 +133,7 @@ Prefer not to build? Download the APK from [Releases](https://github.com/dyascj/
 ./fireframe.sh debloat 192.168.1.50 --list             # what's on and off right now
 ```
 
-Apps are disabled, not deleted. [debloat.txt](debloat.txt) lists every package with a note on what it is. Fire OS protects some packages and refuses to turn them off (on Fire OS 8.1.8.6, 9 of the 39 in `safe`, `telemetry` and `screensaver`); the script says "Fire OS refused" for those and goes on. The memory of turned-off apps is freed when the TV restarts.
+Apps are disabled, not deleted. [debloat.txt](debloat.txt) lists every package with a note on what it is. Fire OS protects some packages and refuses to turn them off (on Fire OS 8.1.8.6, 9 of the 39 in `safe`, `telemetry` and `screensaver`); the script says "Fire OS refused" for those and goes on. After it, restart the TV (`./fireframe.sh restart <ip>`, or `debloat ... --restart`): that applies the changes cleanly and shows the free memory before and after. **Measured on a Fire TV Stick 4K Max (2nd gen, Fire OS 8.1.8.6):** the restart alone gave back about 200 MB (395 MB available before, 590-630 after); turning off `safe`, `screensaver` and `telemetry` did not add a measurable gain in idle memory on top of that (about 575 MB with, 585-620 MB without, within the noise between two identical runs). The bigger gains in the table at the top were measured on a Fire TV Stick HD with 900 MB; see [docs/measurements](docs/measurements/README.md).
 
 | Group | What turns off | What you lose |
 | --- | --- | --- |

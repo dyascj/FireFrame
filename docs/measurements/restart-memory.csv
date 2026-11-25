@@ -1,0 +1,16 @@
+phase,n,MemAvailableMB,MemFreeMB,MemTotalMB,processes,wakefulness,focus,ffpss,disabled
+A,1,591,83,1669,308,Awake,android,ffpss=51,disabled=0
+A,2,627,116,1669,307,Awake,android,ffpss=51,disabled=0
+A,3,629,104,1669,308,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=50,disabled=0
+A,4,634,108,1669,309,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=50,disabled=0
+A,5,627,73,1669,308,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=50,disabled=0
+B,1,545,41,1669,307,Awake,android,ffpss=49,disabled=30
+B,2,572,64,1669,303,Awake,android,ffpss=49,disabled=30
+B,3,577,52,1669,304,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=49,disabled=30
+B,4,592,58,1669,304,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=49,disabled=30
+B,5,590,54,1669,304,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=54,disabled=30
+C,1,543,57,1669,314,Awake,android,ffpss=51,disabled=0
+C,2,596,87,1669,309,Awake,android,ffpss=52,disabled=0
+C,3,596,61,1669,309,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=51,disabled=0
+C,4,604,66,1669,309,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=51,disabled=0
+C,5,584,38,1669,312,Awake,com.fireframe.home/com.fireframe.home.MainActivity,ffpss=63,disabled=0

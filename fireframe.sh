@@ -7,11 +7,13 @@
 #   ./fireframe.sh debloat   <tv-ip> [--dry-run] turn off Amazon ads, tracking and junk ("safe" in debloat.txt)
 #   ./fireframe.sh debloat   <tv-ip> --also alexa,primevideo   also these groups from debloat.txt (or --all)
 #   ./fireframe.sh debloat   <tv-ip> --list      which packages from debloat.txt are on or off right now
+#   ./fireframe.sh debloat   <tv-ip> --restart   after turning them off, restart the TV afterwards
 #   ./fireframe.sh wallpaper <tv-ip> photo.jpg   use your own photo (or a folder of photos: a slideshow,
 #                                                add --slideshow 15 to change every 15 minutes)
 #   ./fireframe.sh weather   <tv-ip> "Berlin"    show the weather for a city ("off" turns it off)
 #   ./fireframe.sh undo      <tv-ip> [--uninstall] turn everything back on (and remove FireFrame)
 #   ./fireframe.sh memory    <tv-ip>             free memory right now
+#   ./fireframe.sh restart   <tv-ip>             restart the TV and show the free memory before and after
 #
 # Nothing is ever deleted from the TV. Apps are disabled, and undo turns them back on.
 set -e
@@ -19,7 +21,7 @@ cd "$(dirname "$0")"
 SELF=$(pwd)/$(basename "$0") # for the setup guide, which calls this script again
 
 CMD=$1; IP=$2
-[ -n "$CMD" ] && [ -n "$IP" ] || { sed -n '3,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+[ -n "$CMD" ] && [ -n "$IP" ] || { sed -n '3,17p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 case "$IP" in *:*|emulator-*) ;; *) IP=$IP:5555 ;; esac
 
 PKG=com.fireframe.home
@@ -60,6 +62,30 @@ compat() {
     30) echo "Fire OS 8: tested (Fire TV Stick 4K Max 2nd gen, Fire OS 8.1.5.8 and 8.1.8.6). Updates need one OK on the TV, since Android 11 can't install silently." ;;
     *) echo "This Android version has not been tested. It may still work; please report what you see (Issues on GitHub)." ;;
   esac
+}
+
+avail_mb() { tv cat /proc/meminfo | awk '/MemAvailable/{printf "%d", $2/1024}'; }
+
+# Restarts the TV, waits until it is back and has settled, and shows the free memory before and after.
+# A restart applies the changes cleanly and clears the memory the TV has built up since it last started.
+# Boots start a lot of services, so the number is read after a pause: it is the memory the TV has when it is
+# idle on FireFrame's home screen.
+restart_tv() {
+  before=$(avail_mb)
+  echo "Free memory before the restart: $before MB. Restarting the TV (takes about two minutes)..."
+  "$ADB" -s "$IP" reboot >/dev/null 2>&1 || true
+  sleep 25
+  i=0
+  while [ $i -lt 60 ]; do
+    "$ADB" connect "$IP" >/dev/null 2>&1 || true
+    [ "$(tv getprop sys.boot_completed 2>/dev/null)" = 1 ] && break
+    sleep 5; i=$((i + 1))
+  done
+  [ "$(tv getprop sys.boot_completed 2>/dev/null)" = 1 ] || { echo "The TV did not come back over adb in five minutes. Check it, then run: ./fireframe.sh memory $IP" >&2; exit 1; }
+  echo "The TV is back. Waiting two minutes for it to settle..."
+  sleep 120
+  after=$(avail_mb)
+  echo "Free memory after the restart: $after MB (before: $before MB, difference: $((after - before)) MB)."
 }
 
 memory() {
@@ -160,7 +186,11 @@ setup)
   if [ -n "$also" ]; then
     say "Selected: $also"
     yes "Show what would be turned off first?" y && sh "$SELF" debloat "$IP" --dry-run --also "$also"
-    yes "Turn them off now?" y && sh "$SELF" debloat "$IP" --also "$also"
+    if yes "Turn them off now?" y; then
+      sh "$SELF" debloat "$IP" --also "$also"
+      say "A restart applies the changes cleanly and clears the memory built up since the TV last started."
+      yes "Restart the TV now and show the free memory before and after?" y && sh "$SELF" restart "$IP"
+    fi
   else
     say "Nothing selected: Amazon's apps stay as they are."
   fi
@@ -187,12 +217,13 @@ setup)
 
 debloat)
   connect
-  groups=" safe "; dry=""; list=""
+  groups=" safe "; dry=""; list=""; restart=""
   shift 2
   while [ $# -gt 0 ]; do
     case "$1" in
       --dry-run) dry=1 ;;
       --list) list=1 ;;
+      --restart) restart=1 ;;
       --all) groups=" $(grep -v '^[[:space:]]*#' debloat.txt | awk 'NF{print $1}' | sort -u | tr '\n' ' ') " ;;
       --also) groups="$groups$(echo "$2" | tr ',' ' ') "; shift ;;
     esac
@@ -230,7 +261,8 @@ debloat)
     echo "Animations set to 0.5x."
     sleep 15 # Android saves package changes a few seconds later; restarting before then can undo them
     memory
-    echo "Restart the TV (Settings > My Fire TV > Restart) to free the memory those apps held."
+    if [ -n "$restart" ]; then restart_tv
+    else echo "Restart the TV to apply this cleanly and clear built-up memory: ./fireframe.sh restart $IP (or Settings > My Fire TV > Restart)."; fi
   fi
   ;;
 
@@ -312,5 +344,7 @@ undo)
 
 memory) connect; memory ;;
 
-*) sed -n '3,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+restart) connect; restart_tv ;;
+
+*) sed -n '3,17p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
