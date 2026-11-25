@@ -72,7 +72,8 @@ longpress_ok() {
 # Tap at (X, Y) in a 1920x1080 layout, scaled to the TV's real screen size.
 tap() {
   guard_select "tap $1 $2"
-  size=$(tv "wm size" | sed -n 's/.*Physical size: *\([0-9]*\)x\([0-9]*\).*/\1 \2/p')
+  # "Override size" (the size the TV really draws at, 1920x1080 on a 4K screen) comes after "Physical size" and wins.
+  size=$(tv "wm size" | sed -n 's/.*size: *\([0-9]*\)x\([0-9]*\).*/\1 \2/p' | tail -1)
   [ -n "$size" ] || size="1920 1080"
   dw=${size% *}; dh=${size#* }
   tv "input tap $(($1 * dw / 1920)) $(($2 * dh / 1080))"
@@ -241,7 +242,7 @@ for row in "Language|Sprache" "Clock|Uhr" "Clock size|Uhrgröße" "Date|Datum" "
   check "settings row: ${row%%|*}" assert_text "$row"
 done
 # No OK on these rows: Language would switch the language.
-for i in 1 2 3 4 5 6 7 8 9; do key KEYCODE_DPAD_DOWN; done
+for i in 1 2 3 4 5 6 7 8 9 10; do key KEYCODE_DPAD_DOWN; done
 for row in "Quick menu|Schnellmenü" "Block Amazon home screen|Amazon-Startbildschirm sperren"; do
   check "settings row: ${row%%|*}" assert_text "$row"
 done
