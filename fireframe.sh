@@ -59,7 +59,7 @@ compat() {
   case "$(tv getprop ro.build.version.sdk)" in
     22) echo "Fire OS 6: works, with the differences in the README (FireFrame watches the system log for Home)." ;;
     28) echo "Fire OS 7: tested by the project (Fire TV Stick HD, 4K Max 1st gen)." ;;
-    30) echo "Fire OS 8: tested (model AFTMA08C15, Fire OS 8.1.5.8 and 8.1.8.6). Updates need one OK on the TV, since Android 11 can't install silently." ;;
+    30) echo "Fire OS 8: tested (Fire TV Stick 4K Plus 2025, model AFTMA08C15, Fire OS 8.1.5.8 and 8.1.8.6). Updates need one OK on the TV, since Android 11 can't install silently." ;;
     *) echo "This Android version has not been tested. It may still work; please report what you see (Issues on GitHub)." ;;
   esac
 }

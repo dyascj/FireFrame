@@ -1,6 +1,6 @@
 # Memory after a restart, with and without the debloat
 
-Fire TV Stick AFTMA08C15 (codename karat), Fire OS 8.1.8.6, 1669 MB RAM, FireFrame on the home screen, idle, no key pressed.
+Fire TV Stick 4K Plus (2025, model AFTMA08C15), Fire OS 8.1.8.6, 1669 MB RAM, FireFrame on the home screen, idle, no key pressed.
 
 Method (`restart-memory.csv`): `./fireframe.sh restart <ip>` (reboot, wait for adb, wait 2 minutes), then 5 samples 30 seconds apart of `MemAvailable` from `/proc/meminfo`, the process count (`ps -A`) and FireFrame's PSS.
 
