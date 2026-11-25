@@ -125,7 +125,7 @@ final class L {
             {"Setup guide", "Einrichtungsassistent"},
             {"OK Choose  ·  Back Leave the guide", "OK Auswählen  ·  Zurück Assistent verlassen"},
             {"Welcome to FireFrame", "Willkommen bei FireFrame"},
-            {"FireFrame replaces Amazon's home screen with a calm one. The next screens explain each feature and let you turn it on or leave it off. Everything can be changed later in Settings, top right. Nothing leaves the TV unless you turn on the weather or a picture of the day.", "FireFrame ersetzt Amazons Startbildschirm durch einen ruhigen. Die nächsten Seiten erklären jede Funktion, und du schaltest sie ein oder lässt sie aus. Alles lässt sich später in den Einstellungen oben rechts ändern. Nichts verlässt den Fernseher, solange du Wetter oder ein Bild des Tages nicht einschaltest."},
+            {"FireFrame replaces Amazon's home screen with a calm one. The next screens explain the main features and let you turn them on or leave them off. Every option, and more, is in Settings, top right. Nothing leaves the TV unless you turn on the weather or a picture of the day.", "FireFrame ersetzt Amazons Startbildschirm durch einen ruhigen. Die nächsten Seiten erklären die wichtigsten Funktionen, und du schaltest sie ein oder lässt sie aus. Alle Optionen und mehr findest du in den Einstellungen oben rechts. Nichts verlässt den Fernseher, solange du Wetter oder ein Bild des Tages nicht einschaltest."},
             {"Set up", "Einrichten"},
             {"Skip", "Überspringen"},
             {"The language of FireFrame's menus. Auto follows the TV. Default: Auto.", "Die Sprache der FireFrame-Menüs. Automatisch folgt dem Fernseher. Standard: Automatisch."},

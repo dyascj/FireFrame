@@ -52,6 +52,16 @@ connect() {
   echo "Connected to $(tv getprop ro.product.model), $os"
 }
 
+# Says how well this Fire OS is known, so nobody is surprised. Fire OS 6, 7 and 8 are Android 5.1, 9 and 11.
+compat() {
+  case "$(tv getprop ro.build.version.sdk)" in
+    22) echo "Fire OS 6: works, with the differences in the README (FireFrame watches the system log for Home)." ;;
+    28) echo "Fire OS 7: tested by the project (Fire TV Stick HD, 4K Max 1st gen)." ;;
+    30) echo "Fire OS 8: tested (Fire TV Stick 4K Max 2nd gen, Fire OS 8.1.5.8 and 8.1.8.6). Updates need one OK on the TV, since Android 11 can't install silently." ;;
+    *) echo "This Android version has not been tested. It may still work; please report what you see (Issues on GitHub)." ;;
+  esac
+}
+
 memory() {
   tv cat /proc/meminfo | awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{printf "Free memory: %d MB of %d MB\n", a/1024, t/1024}'
 }
@@ -92,6 +102,7 @@ do_install() {
 case "$CMD" in
 install)
   connect
+  compat
   do_install
   ;;
 
@@ -121,6 +132,7 @@ setup)
   }
 
   say "FireFrame setup. Every step says what an option does. Enter skips a step and changes nothing."
+  compat
   if ! tv pm list packages "$PKG" | grep -q -x "package:$PKG"; then
     yes "FireFrame is not on this TV yet. Install it now?" y && do_install || exit 0
   fi

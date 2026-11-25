@@ -33,7 +33,7 @@ final class Welcome {
 
     static final Step[] STEPS = {
         new Step(null, "Welcome to FireFrame",
-                "FireFrame replaces Amazon's home screen with a calm one. The next screens explain each feature and let you turn it on or leave it off. Everything can be changed later in Settings, top right. Nothing leaves the TV unless you turn on the weather or a picture of the day.",
+                "FireFrame replaces Amazon's home screen with a calm one. The next screens explain the main features and let you turn them on or leave them off. Every option, and more, is in Settings, top right. Nothing leaves the TV unless you turn on the weather or a picture of the day.",
                 new String[] {"go", "skip"}, new String[] {"Set up", "Skip"}),
         new Step("lang", "Language",
                 "The language of FireFrame's menus. Auto follows the TV. Default: Auto.",

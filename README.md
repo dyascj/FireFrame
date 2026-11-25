@@ -62,7 +62,7 @@ Measured on a Fire TV Stick HD (AFTSS), Fire OS 7.7.1.4, which has 900 MB of usa
 | --- | --- | --- |
 | Fire TV Stick HD, Lite, 3rd gen, 4K (1st gen), 4K Max (1st gen), Cube | Fire OS 7 | Yes. Tested on Fire TV Stick HD, Fire OS 7.7.1.4, and reported working on 4K Max (1st gen), Fire OS 7.7.1.3, and on an Insignia Fire TV Edition TV, Fire OS 7.7.1.7. |
 | Fire TV Stick 4K (1st gen) and others not yet on Fire OS 7 | Fire OS 6 | Yes, with the differences below. Tested on Fire TV Stick 4K (1st gen), Fire OS 6.7.1.1. |
-| Fire TV Stick 4K (2nd gen), 4K Max (2nd gen), newer Cubes | Fire OS 8 | Should work. Not tested yet, reports welcome. |
+| Fire TV Stick 4K (2nd gen), 4K Max (2nd gen), newer Cubes | Fire OS 8 (Android 11) | Yes. Tested on a Fire TV Stick 4K Max (2nd gen, AFTMA08C15), Fire OS 8.1.5.8 and 8.1.8.6: Home button, settings, folders, quick menu, night mode, weather, pictures of the day, debloat `--list` and `--dry-run`, and the guided setup. Differences: an update always needs one OK on the TV (Android 11 can't install silently), and the Home button runs through the accessibility service only (there is no log fallback). Other Fire OS 8 devices: reports welcome. |
 | Fire TV Stick 4K Select and other Vega OS devices | Vega OS | No. Vega OS can't install Android apps. |
 | Android TV, Google TV, Chromecast with Google TV | Android | Yes, as a normal launcher. Pick it as the default home screen. |
 
@@ -196,21 +196,34 @@ Settings at the top right, then **FireFrame settings**. Press OK on a row to go 
 | --- | --- |
 | Language | Auto (follows the TV), English, Deutsch |
 | Clock | Auto (follows the TV), 12-hour, 24-hour |
+| Clock size | Small, Normal (default), Large |
 | Date | Off, On. Shows e.g. "Mon, 23 Nov" under the clock |
-| Weather | Off, On. Shows e.g. "Cloudy 12°C" next to the date |
-| Weather city | Type a city. Needs FireFrame opened from the app list, since the overlay after Home can't show the keyboard. Or from the computer: `./fireframe.sh weather <ip> "Berlin"` |
-| Temperature | Auto (°F in the US), °C, °F |
-| Slideshow | Off, 1 min, 5 min, 15 min, 1 hour. Cycles through every wallpaper and photo |
-| Night mode > Also in other apps (Beta) | Off, On. Also in other apps (Beta): dims everything with a window above all apps while it is night. Off by default because it uses extra resources; may not dim protected video on every device. |
-| Glass | Light, Normal, Dark. How dark the dock is |
-| Dock size | Normal, Compact. Compact tiles are smaller, so more fit on the dock |
-| Dynamic dock | Off, On. On: the dock is centred and only as wide as its apps, so one app gives a one-tile dock. It changes size like a drop of liquid |
+| Weather > Weather | Off, On. Shows e.g. "Cloudy 12°C" next to the date |
+| Weather > Weather city | Type a city. Needs FireFrame opened from the app list, since the overlay after Home can't show the keyboard. Or from the computer: `./fireframe.sh weather <ip> "Berlin"` |
+| Weather > Temperature | Auto (°F in the US), °C, °F |
+| Background > Wallpaper source | All (default), Built-in, My photos, Wikimedia daily, NASA daily. The daily pictures download one new picture a day |
+| Background > Slideshow | Off, 1 min, 5 min, 15 min, 1 hour. Cycles through the pictures of the chosen source |
+| Night mode > Night mode | Off (default), Manual, Schedule. Not Off adds a moon button to the top row; Manual: the moon turns it on and off, Schedule: on between the hours below |
+| Night mode > Night strength | Light, Medium (default), Strong |
+| Night mode > Night from / until | 20:00 to 23:00 (default 22:00), 5:00 to 8:00 (default 6:00) |
+| Night mode > Also in other apps (Beta) | Off, On. On: dims everything with a window above all apps while it is night. Off by default because it uses extra resources; may not dim protected video on every device. |
+| Dock and apps > Dock size | Normal, Compact. Compact tiles are smaller, so more fit on the dock |
+| Dock and apps > Dynamic dock | Off, On. On: the dock is centred and only as wide as its apps, so one app gives a one-tile dock. It changes size like a drop of liquid |
+| Dock and apps > Labels | Always (default), Only when selected, Never. The name under each dock app |
+| Dock and apps > App names in the drawer | On (default), Off |
+| Dock and apps > Glass | Light, Normal, Dark. How dark the dock is |
+| Dock and apps > Recently used apps | On (default), Off. A row of the last apps at the top of the app drawer |
+| Dock and apps > Hidden apps | The number of apps hidden from FireFrame (see Folders). OK opens them, and OK on one shows it again |
 | Block Amazon home screen | On, Off. On: Amazon's home screen is always covered. Off: FireFrame stays out of the way and Amazon's home screen can be used (the "Amazon home screen" entry in the settings menu works either way). |
 | Updates > | Check for updates (checks right away; the row shows the result). Automatic update check (On = once a day, Off = never). Install update (appears when a newer release is known; Android asks for one OK on the TV) |
 | Quick menu (Beta) | Off, On. On: a long press on Home shows FireFrame's own menu instead of Amazon's (see below). Off by default |
-| Dock and apps > Hidden apps | The number of apps hidden from FireFrame (see Folders). OK opens them, and OK on one shows it again |
+| Setup guide | Opens the setup guide again (see Guided setup) |
 
-Weather comes from [Open-Meteo](https://open-meteo.com), a free service with no account. It is off until you turn it on and pick a city. Then the TV sends that city's coordinates to Open-Meteo about every 30 minutes, and Open-Meteo sees the TV's IP address as it would for any request. Nothing else in FireFrame talks to the internet except the daily update check on GitHub.
+Weather comes from [Open-Meteo](https://open-meteo.com), a free service with no account. It is off until you turn it on and pick a city. Then the TV sends that city's coordinates to Open-Meteo about every 30 minutes, and Open-Meteo sees the TV's IP address as it would for any request. The only other network use is the daily update check on GitHub, and the Wikimedia or NASA picture of the day if you choose it as the wallpaper source (about one request a day, up to 12 MB; they see the TV's IP address too).
+
+**Crash guard.** If FireFrame crashes three times within five minutes, it pauses itself for an hour: it stops covering Amazon's home screen and the quick menu, with a one-time message on the TV, so you are never stuck. Opening FireFrame from the app list resumes it at once.
+
+**Uninstall.** An app's menu (long OK in the drawer or on the dock) has **Uninstall** for apps you installed yourself; Android shows its usual confirmation. System apps can't be uninstalled, so use **Hide app** for those.
 
 ## Your own wallpaper
 
@@ -250,6 +263,7 @@ git pull
 ```sh
 ./fireframe.sh undo 192.168.1.50               # turn every app back on, give Home back to Amazon
 ./fireframe.sh undo 192.168.1.50 --uninstall   # and remove FireFrame
+./fireframe.sh memory 192.168.1.50              # free memory right now
 ```
 
 The list of what was turned off is saved on the TV as well as in this folder, so undo works from any computer. When you're done, turn ADB debugging off in Developer Options.
