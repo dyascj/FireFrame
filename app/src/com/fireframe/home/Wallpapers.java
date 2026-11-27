@@ -212,10 +212,14 @@ final class Wallpapers {
             o.inJustDecodeBounds = true;
             try (InputStream in = open(key)) { BitmapFactory.decodeStream(in, null, o); }
             o.inSampleSize = 1;
-            while (o.outWidth / (o.inSampleSize * 2) >= s.screenW && o.outHeight / (o.inSampleSize * 2) >= s.screenH) o.inSampleSize *= 2;
+            // Halve while the picture still covers the screen, and also while it holds more than twice the
+            // screen's pixels: a wide panorama (NASA's hdurl) would otherwise decode to 80 MB and crash.
+            long cap = 2L * s.screenW * s.screenH;
+            while ((o.outWidth / (o.inSampleSize * 2) >= s.screenW && o.outHeight / (o.inSampleSize * 2) >= s.screenH)
+                    || (long) (o.outWidth / o.inSampleSize) * (o.outHeight / o.inSampleSize) > cap) o.inSampleSize *= 2;
             o.inJustDecodeBounds = false;
             try (InputStream in = open(key)) { return BitmapFactory.decodeStream(in, null, o); }
-        } catch (Exception e) {
+        } catch (Exception | OutOfMemoryError e) { // a bad picture falls back to the built-in one, never a crash loop
             return null;
         }
     }

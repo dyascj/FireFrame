@@ -23,10 +23,15 @@ The stock Fire TV home screen above was captured on the stick FireFrame was buil
 
 - **A home screen that's just your apps.** A photo, a clock and a frosted glass dock with white app logos. The focused app lifts a little, like on Apple TV.
 - **The Home button opens FireFrame,** not Amazon's screen. It also opens after a restart.
-- **An app drawer** with everything installed. Hold OK on any app to put it on the dock, move it or take it off, or put it in a folder.
-- **Folders** on the dock, with their own names. Wallpapers fade into each other.
-- **Wallpapers.** Five public domain NASA photos of Earth at night, your own photo, or a folder of photos as a slideshow.
-- **Settings.** Date, weather, 12 or 24 hour clock, slideshow timing, how dark the glass is, and English or German. All off or automatic until you change them.
+- **An app drawer** with everything installed, and a row of recently used apps. Hold OK on any app to put it on the dock, put it in a folder, hide it or uninstall it.
+- **Folders** on the dock, with their own names. See [Folders](#folders).
+- **Move mode.** Hold OK on a dock app: it lifts, the others wiggle, and Left and Right move it. See [Moving apps on the dock](#moving-apps-on-the-dock).
+- **Settings on the TV.** Clock style and size, date, weather, dock size, a dynamic dock that's only as wide as its apps, labels, glass darkness, and English or German. All off or automatic until you change them. See [Settings](#settings).
+- **A setup guide** on the TV on a fresh install, and `./fireframe.sh setup` on your computer, which explains each option and each group of Amazon apps before changing anything. See [Guided setup](#guided-setup-recommended).
+- **Wallpapers.** Five public domain NASA photos of Earth at night, your own photo, a folder of photos as a slideshow, or the Wikimedia or NASA picture of the day. Wallpapers fade into each other.
+- **Night mode.** A warm dark veil, on with the moon button or on a schedule, optionally over other apps too (Beta).
+- **Quick menu (Beta).** A long press on Home shows FireFrame's own version of Amazon's menu. Off by default. See [Quick menu](#quick-menu-beta).
+- **Crash guard.** If FireFrame crashes three times in five minutes, it steps aside for an hour so you are never stuck.
 - **A debloat script** that turns off Amazon's ads, screen tracking, telemetry, shopping, Alexa and Prime Video if you want. Every change is undoable.
 - **Updates itself** from this repo's releases. One OK on the remote, no computer needed.
 - **Small and fast.** A 2 MB app in plain Java with no libraries, made for a stick with 1 GB of RAM.

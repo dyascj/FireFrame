@@ -58,6 +58,8 @@ public class MainActivity extends Activity {
         @Override
         public void onReceive(Context c, Intent i) {
             HomeWatcher.start(c);
+            // A new version likely fixes whatever crashed, so an update ends the crash guard's pause.
+            if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(i.getAction())) Safe.clear(c);
             if (Safe.active(c)) return; // after repeated crashes, leave Amazon's home screen alone
             c.startActivity(new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }
