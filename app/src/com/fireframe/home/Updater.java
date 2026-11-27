@@ -24,35 +24,62 @@ import java.net.URL;
 // settings menu downloads its APK and hands it to Android's installer, which asks for one OK on the TV.
 // Releases are signed with the same key, so the update installs over the top and keeps everything.
 public class Updater extends BroadcastReceiver {
-    static final String LATEST = "https://api.github.com/repos/dyascj/FireFrame/releases/latest";
     static final long DAY = 24 * 60 * 60 * 1000L;
+    static final int UP_TO_DATE = 0, AVAILABLE = 1, FAILED = 2;
+
+    interface Result { void done(int state, String version); }
+
+    // The releases of the repo named in res/values/config.xml, so a fork can follow its own releases.
+    static String latest(Context c) {
+        int id = c.getResources().getIdentifier("update_repo", "string", c.getPackageName());
+        return "https://api.github.com/repos/" + (id == 0 ? "dyascj/FireFrame" : c.getString(id)) + "/releases/latest";
+    }
 
     static SharedPreferences prefs(Context c) {
         return c.getSharedPreferences("fireframe", Context.MODE_PRIVATE);
     }
 
-    // At most once a day, in the background. Runs found on the main thread if there's a newer release.
+    // At most once a day, in the background, unless the setting is off. Runs found on the main thread if there's a newer release.
     static void check(final Context c, final Runnable found) {
         final SharedPreferences prefs = prefs(c);
+        if ("off".equals(prefs.getString("update_check", "daily"))) return;
         long now = System.currentTimeMillis();
         if (now - prefs.getLong("update_checked", 0) < DAY) return;
         prefs.edit().putLong("update_checked", now).apply();
+        ask(c, (state, version) -> { if (state == AVAILABLE) found.run(); });
+    }
+
+    // Asks now, whatever the daily limit. r runs on the main thread.
+    static void checkNow(final Context c, final Result r) {
+        ask(c, r);
+    }
+
+    // Reads the latest release and stores its version and APK. A failure (offline, GitHub down, no APK) runs r with FAILED.
+    private static void ask(final Context c, final Result r) {
+        final SharedPreferences prefs = prefs(c);
         new Thread(() -> {
+            int state = FAILED;
+            String version = null;
             try {
-                JSONObject release = new JSONObject(read(LATEST));
-                String version = release.getString("tag_name").replaceFirst("^v", "");
+                JSONObject release = new JSONObject(read(latest(c)));
+                String tag = release.getString("tag_name").replaceFirst("^v", "");
                 JSONArray assets = release.getJSONArray("assets");
                 for (int i = 0; i < assets.length(); i++) {
                     JSONObject a = assets.getJSONObject(i);
                     if (!a.getString("name").endsWith(".apk")) continue;
-                    prefs.edit().putString("update_version", version)
+                    prefs.edit().putString("update_version", tag)
                             .putString("update_url", a.getString("browser_download_url")).apply();
-                    if (available(c) != null) new Handler(Looper.getMainLooper()).post(found);
-                    return;
+                    String newer = available(c);
+                    version = newer != null ? newer : c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
+                    state = newer != null ? AVAILABLE : UP_TO_DATE;
+                    break;
                 }
             } catch (Exception e) {
-                // Offline or GitHub is down: try again tomorrow.
+                // Offline or GitHub is down: state stays FAILED.
             }
+            final int s = state;
+            final String v = version;
+            new Handler(Looper.getMainLooper()).post(() -> r.done(s, v));
         }).start();
     }
 
@@ -60,14 +87,19 @@ public class Updater extends BroadcastReceiver {
     static String available(Context c) {
         String v = prefs(c).getString("update_version", null);
         try {
-            return v != null && newer(v, c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName) ? v : null;
+            return v != null && Version.newer(v, c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName) ? v : null;
         } catch (Exception e) {
             return null;
         }
     }
 
-    // Downloads the APK straight into an install session. Runs failed on the main thread if that fails.
     static void install(final Context c, final Runnable failed) {
+        install(c, () -> { }, failed);
+    }
+
+    // Downloads the APK straight into an install session. started runs once the installer has it, failed if that
+    // fails; both on the main thread.
+    static void install(final Context c, final Runnable started, final Runnable failed) {
         final String url = prefs(c).getString("update_url", null);
         new Thread(() -> {
             PackageInstaller pi = c.getPackageManager().getPackageInstaller();
@@ -84,6 +116,7 @@ public class Updater extends BroadcastReceiver {
                 int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? 0x02000000 : 0);
                 s.commit(PendingIntent.getBroadcast(c, id, new Intent(c, Updater.class), flags).getIntentSender());
                 s.close();
+                new Handler(Looper.getMainLooper()).post(started);
             } catch (Exception e) {
                 if (id >= 0) pi.abandonSession(id);
                 new Handler(Looper.getMainLooper()).post(failed);
@@ -99,23 +132,14 @@ public class Updater extends BroadcastReceiver {
             Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
             if (confirm != null) c.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } else if (status != PackageInstaller.STATUS_SUCCESS && status != PackageInstaller.STATUS_FAILURE_ABORTED) {
-            Toast.makeText(c, "FireFrame couldn't update: " + i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE),
-                    Toast.LENGTH_LONG).show();
+            // A different signing key: the installer refuses, and the message can say why. (Incompatible means
+            // minSdk or ABI, so it gets the generic message.)
+            boolean otherKey = status == PackageInstaller.STATUS_FAILURE_CONFLICT;
+            String text = otherKey
+                    ? L.t("This FireFrame was signed by someone else, so Android can't update it from the releases. Install the release APK once, or build and publish your own.")
+                    : String.format(L.t("FireFrame couldn't update: %s"), i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE));
+            Toast.makeText(c, text, Toast.LENGTH_LONG).show();
         }
-    }
-
-    // "1.10.0" is newer than "1.9.2".
-    static boolean newer(String a, String b) {
-        String[] x = a.split("\\."), y = b.split("\\.");
-        for (int i = 0; i < Math.max(x.length, y.length); i++) {
-            int d = num(x, i) - num(y, i);
-            if (d != 0) return d > 0;
-        }
-        return false;
-    }
-
-    static int num(String[] parts, int i) {
-        try { return Integer.parseInt(parts[i].replaceAll("\\D.*", "")); } catch (Exception e) { return 0; }
     }
 
     static InputStream open(String url) throws Exception {

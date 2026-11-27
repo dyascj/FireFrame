@@ -2,6 +2,7 @@ package com.fireframe.home;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -23,6 +24,8 @@ import android.view.accessibility.AccessibilityWindowInfo;
 //     that app's tile on Amazon's launcher, hidden behind the overlay: Amazon's launches aren't held.
 public class HomeService extends AccessibilityService {
     static final String AMAZON_HOME = "com.amazon.tv.launcher";
+    // Amazon's menu for a long press on Home (profiles, apps, sleep, mirroring, settings).
+    static final String HUD_PACKAGE = "com.amazon.tv.settings.v2";
     // Amazon's Appstore. On Fire OS 7 its screens are drawn by Amazon's launcher, so it pauses covering.
     static final String APPSTORE = "com.amazon.venezia";
     static final int SHOWN = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_FULLSCREEN;
@@ -42,9 +45,11 @@ public class HomeService extends AccessibilityService {
     WindowManager wm;
     WindowManager.LayoutParams lp;
     HomeScreen overlay;
-    boolean added, showing, hideWhenMenusClose;
+    View veil; // night mode over other apps (Look.applyNight): attached only while it is night and the setting is on
+    boolean added, showing, hideWhenMenusClose, hudOpen;
+    long hudClosedUntil; // while closing, Amazon's menu must not bring ours up again
+    boolean safeToasted; // the "paused" message is shown once per service lifetime
     final Runnable hideNow = this::hide;
-
     // Amazon's launcher sends this, unguarded, from its own goHome. It can reach us a little before the
     // launcher's window has drawn, so we cover sooner than the accessibility event alone would let us.
     final BroadcastReceiver homePressed = new BroadcastReceiver() {
@@ -98,6 +103,34 @@ public class HomeService extends AccessibilityService {
         if (running != null) running.hide();
     }
 
+    // Dims the whole screen, other apps included, while night mode is on for them. Not attached at all otherwise,
+    // so it costs nothing outside the night. Only added once the overlay exists, so it sits above it.
+    static void setNightVeil(float alpha) {
+        HomeService s = running;
+        if (s == null || s.overlay == null) return;
+        if (alpha <= 0) {
+            if (s.veil != null) {
+                try { s.wm.removeViewImmediate(s.veil); } catch (RuntimeException e) { /* already gone */ }
+            }
+            s.veil = null;
+            return;
+        }
+        if (s.veil == null) {
+            View v = new View(s);
+            v.setBackgroundColor(0xFF140A02); // the same warm dark as the overlay's own night veil
+            v.setAlpha(alpha);
+            WindowManager.LayoutParams vlp = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_FULLSCREEN
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, PixelFormat.TRANSLUCENT);
+            try { s.wm.addView(v, vlp); } catch (RuntimeException e) { return; } // tried again on the next night tick
+            s.veil = v;
+        }
+        s.veil.setAlpha(alpha);
+    }
+
     @Override
     protected void onServiceConnected() {
         running = this;
@@ -115,6 +148,7 @@ public class HomeService extends AccessibilityService {
     @Override
     public boolean onUnbind(Intent intent) {
         unregisterReceiver(homePressed);
+        setNightVeil(0); // needs running, so before it is cleared below
         if (added) wm.removeViewImmediate(overlay);
         added = false;
         running = null;
@@ -135,9 +169,28 @@ public class HomeService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent e) {
+        // Amazon's menu window is listed as soon as it is added, before its content draws: earlier than window-state.
+        if (e.getEventType() == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
+            if (hudOpen || !"on".equals(Updater.prefs(this).getString("hud", QuickMenu.HUD_DEFAULT)) || Safe.active(this)) return;
+            for (AccessibilityWindowInfo w : getWindows()) {
+                AccessibilityNodeInfo root = w.getRoot();
+                // The settings app has other screens too: only the quick menu has the clock id (needs flagReportViewIds).
+                if (root != null && HUD_PACKAGE.contentEquals(root.getPackageName())
+                        && !root.findAccessibilityNodeInfosByViewId(HUD_PACKAGE + ":id/hud_clock_hours").isEmpty()) {
+                    openHud();
+                    return;
+                }
+            }
+            return;
+        }
         CharSequence pkg = e.getPackageName();
         if (pkg == null) return;
         String p = pkg.toString();
+        if (p.equals(HUD_PACKAGE)) {
+            // Amazon's long-Home menu: cover it with FireFrame's own, unless that's turned off.
+            if (String.valueOf(e.getClassName()).contains("HudActivity") && "on".equals(Updater.prefs(this).getString("hud", QuickMenu.HUD_DEFAULT))) openHud();
+            return;
+        }
         if (p.equals(AMAZON_HOME)) {
             // Fire TV's settings screens live in Amazon's launcher: never cover them.
             String cls = String.valueOf(e.getClassName());
@@ -157,8 +210,129 @@ public class HomeService extends AccessibilityService {
         }
     }
 
+    // The quick menu: FireFrame's own version goes over Amazon's, which is closed again when this one is.
+    void openHud() {
+        if (Safe.active(this)) return; // after repeated crashes, Amazon's menu is left alone
+        if (SystemClock.elapsedRealtime() < hudClosedUntil) return; // it is being closed: its window changing isn't a new menu
+        if (overlay == null || hudOpen || !attach()) return;
+        hudOpen = true;
+        overlay.removeCallbacks(hideNow);
+        if (!showing) {
+            showing = true;
+            hideWhenMenusClose = false;
+            overlay.setVisibility(View.VISIBLE);
+        }
+        setFocusable(true);
+        overlay.onShown(false);
+        overlay.hud.openHud();
+    }
+
+    // The quick menu is done: -1 if it was just closed, else the choice. Amazon's menu underneath is closed too,
+    // and the choice is carried out once that is out of the way.
+    static void hudClosed(int which) {
+        HomeService s = running;
+        if (s != null) s.closeHud(which);
+    }
+
+    void closeHud(final int which) {
+        if (!hudOpen) return;
+        hudOpen = false;
+        hudClosedUntil = SystemClock.elapsedRealtime() + 2000;
+        // The overlay stays up showing FireFrame's home, but gives up the remote so Back reaches Amazon's menu.
+        setFocusable(false);
+        // Amazon only lets its own apps open the profile picker, so that one is chosen by pressing
+        // the profile tile on Amazon's menu, which is still there underneath.
+        if (which == QuickMenu.HUD_PROFILE && pressAmazonHud("text_profiles_label")) {
+            overlay.postDelayed(hideNow, 700);
+            return;
+        }
+        closeAmazonHud(which, 0, false);
+    }
+
+    // Sends Back to Amazon's menu once it has the remote (right after setFocusable(false) it may not yet),
+    // then hides the overlay only when that menu is gone, or after about 1.5 s so the overlay never sticks.
+    void closeAmazonHud(final int which, final int tries, final boolean backSent) {
+        boolean sent = backSent;
+        if (!sent && amazonMenuInFront()) {
+            performGlobalAction(GLOBAL_ACTION_BACK);
+            sent = true;
+        }
+        if ((!sent || amazonMenuInFront()) && tries < 15) {
+            final boolean again = sent;
+            overlay.postDelayed(() -> closeAmazonHud(which, tries + 1, again), 100);
+            return;
+        }
+        hide();
+        if (which >= 0) overlay.postDelayed(() -> runHudChoice(which), 350);
+    }
+
+    // Presses a tile of Amazon's quick menu: the one whose label has this view id.
+    boolean pressAmazonHud(String labelId) {
+        for (AccessibilityWindowInfo w : getWindows()) {
+            AccessibilityNodeInfo root = w.getRoot();
+            if (root == null || !HUD_PACKAGE.contentEquals(root.getPackageName())) continue;
+            for (AccessibilityNodeInfo label : root.findAccessibilityNodeInfosByViewId(HUD_PACKAGE + ":id/" + labelId)) {
+                AccessibilityNodeInfo n = label;
+                while (n != null && !n.isClickable()) n = n.getParent();
+                if (n != null && n.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true;
+            }
+        }
+        return false;
+    }
+
+    boolean amazonMenuInFront() {
+        for (AccessibilityWindowInfo w : getWindows()) {
+            AccessibilityNodeInfo root = w.getRoot();
+            if (w.isFocused() && root != null && HUD_PACKAGE.contentEquals(root.getPackageName())) return true;
+        }
+        return false;
+    }
+
+    void runHudChoice(int which) {
+        try {
+            switch (which) {
+                case QuickMenu.HUD_PROFILE: // only reached when Amazon's tile could not be pressed (see closeHud)
+                    android.widget.Toast.makeText(this, L.t("Couldn't open that"), android.widget.Toast.LENGTH_SHORT).show();
+                    break;
+                case QuickMenu.HUD_APPS:
+                    startActivity(new Intent(this, MainActivity.class).putExtra("open", "apps")
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION));
+                    break;
+                case QuickMenu.HUD_SLEEP:
+                    if (android.os.Build.VERSION.SDK_INT >= 28) performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
+                    break;
+                case QuickMenu.HUD_MIRROR:
+                    startActivity(new Intent(Intent.ACTION_MAIN)
+                            .setComponent(new ComponentName("com.amazon.cast.sink", "com.amazon.cast.sink.DisplayMirroringSinkActivity"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    break;
+                case QuickMenu.HUD_SETTINGS:
+                    pause(true); // Amazon's settings live in its launcher: don't cover them
+                    startActivity(new Intent("amazon.intent.action.MAINSETTINGS").addCategory("android.intent.category.MAINSETTINGS")
+                            .setComponent(new ComponentName(AMAZON_HOME, "com.amazon.tv.launcher.ui.MainSettingsActivity"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    break;
+                default:
+                    break;
+            }
+        } catch (RuntimeException e) {
+            android.widget.Toast.makeText(this, L.t("Couldn't open that"), android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+
     // Amazon's home screen opened. Cover it and bring up the FireFrame app.
     void cover() {
+        if ("off".equals(Updater.prefs(this).getString("amazon_block", "on"))) return; // Amazon's home screen is left alone
+        if (Safe.active(this)) {
+            // Safe mode: Amazon's home screen stays on screen. Say so once, so it isn't a mystery.
+            if (!safeToasted) {
+                safeToasted = true;
+                android.widget.Toast.makeText(this,
+                        L.t("FireFrame is paused after repeated crashes. Open it from the app list to turn it back on."),
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if (paused()) return;
         show();
         startActivity(new Intent(this, MainActivity.class)

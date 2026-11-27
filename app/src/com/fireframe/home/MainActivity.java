@@ -14,6 +14,15 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        if (Safe.active(this)) {
+            // After repeated crashes only the app list opens FireFrame; anything else (Home, boot) leaves
+            // Amazon's home screen alone. The app list's launch counts as the user wanting it back.
+            if (!getIntent().hasCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)) {
+                finish();
+                return;
+            }
+            Safe.clear(this);
+        }
         screen = new HomeScreen(this);
         screen.applyExtras(getIntent());
         setContentView(screen);
@@ -28,9 +37,11 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (screen == null) return; // finished in onCreate by the crash guard, see there
         HomeService.pausedUntil = 0;
         HomeWatcher.start(this);
         screen.onShown(false);
+        screen.post(screen.welcome::startIfFresh);
         // Once this has drawn, the overlay covering Amazon's launcher can step aside. Not sooner, or
         // Amazon's launcher shows through for a moment.
         screen.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
@@ -47,6 +58,7 @@ public class MainActivity extends Activity {
         @Override
         public void onReceive(Context c, Intent i) {
             HomeWatcher.start(c);
+            if (Safe.active(c)) return; // after repeated crashes, leave Amazon's home screen alone
             c.startActivity(new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }
     }

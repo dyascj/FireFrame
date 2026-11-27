@@ -236,6 +236,8 @@ public class HomeWatcher extends Service {
     }
 
     void cover() {
+        if ("off".equals(Updater.prefs(this).getString("amazon_block", "on"))) return; // Amazon's home screen is left alone
+        if (Safe.active(this)) return; // after repeated crashes, Amazon's home screen stays on screen
         if (HomeService.paused()) return;
         show();
         startActivity(new Intent(this, MainActivity.class)

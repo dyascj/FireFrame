@@ -1,12 +1,13 @@
 # What ./fireframe.sh debloat turns off, by group. Lines are: group  package  # what it is
 # "safe" is always used. Add others with --also alexa,primevideo,... or --all.
 # Apps are disabled, never deleted: ./fireframe.sh undo turns them back on.
-# Checked on a Fire TV Stick HD (AFTSS), Fire OS 7.7.1.4. Missing packages are skipped.
+# Checked on a Fire TV Stick HD (AFTSS), Fire OS 7.7.1.4, and found on a Fire TV Stick (AFTMA08C15),
+# Fire OS 8.1.5.8. Missing packages are skipped.
 #
 # Never listed, because Fire TV needs them: the Amazon launcher (Fire OS won't allow it anyway),
 # Settings, System UI, the keyboard, Bluetooth and the remote, the Appstore (apps check their
 # licence through it), sign-in and account services, WebView, DIAL (casting from Netflix and
-# YouTube phone apps), parental controls, setup, and screen savers.
+# YouTube phone apps), parental controls and setup. Screensavers are only in the opt-in "screensaver" group.
 
 # Ads, tracking and promotions
 safe       com.amazon.kso.blackbird                 # ads service (Kindle Special Offers)
@@ -65,6 +66,7 @@ alexa      com.amazon.rtcsessioncontroller          # Alexa video calls
 alexa      com.amazon.audiohome                     # Alexa multi-room audio
 alexa      com.amazon.whad                          # Whole Home Audio
 alexa      com.amazon.whasettings                   # Whole Home Audio settings
+alexa      com.amazon.smarthomemapviewapp           # Alexa Smart Home on the TV
 alexa      com.amazon.wha.mediabrowserservice       # Whole Home Audio
 
 # Prime Video: the biggest app in memory, even when you don't watch it
@@ -74,6 +76,10 @@ primevideo com.amazon.firebat                       # Prime Video
 amazonapps com.amazon.bueller.music                 # Amazon Music
 amazonapps com.amazon.bueller.photos                # Amazon Photos
 amazonapps com.amazon.cloud9                        # Silk Browser
+amazonapps com.amazon.imdb.tv.android.app           # IMDb TV (Freevee), the app with ads
+
+# Amazon's YouTube app: big in memory. Casting from the YouTube phone app to this TV stops too.
+youtube    com.amazon.firetv.youtube                # YouTube (Amazon's app)
 
 # Fire TV's own screen mirroring and "fling" (Netflix and YouTube casting keep working)
 casting    com.amazon.cast.sink                     # Display Mirroring
@@ -87,3 +93,24 @@ livetv     com.amazon.tv.livetv                     # Live TV guide
 updates    com.amazon.device.software.ota           # system updates
 updates    com.amazon.device.software.ota.override  # system updates
 updates    com.amazon.tv.forcedotaupdater.v2        # forced updates
+
+# More telemetry, found on Fire OS 8.1.5.8 (AFTMA08C15) by reading each package's components and
+# permissions, and by seeing which of them run and talk to the network on an idle stick. Fire OS may refuse
+# some of these ("Fire OS refused"); the script skips those. On Fire OS 8.1.8.6 it refused adep, diode,
+# device.metrics, usagestats.proxy and arcus.proxy ("protected package"). Not in "safe" because they go deeper than
+# the groups above, and a Settings page or a feature could depend on one on another model.
+telemetry  com.amazon.adep                          # event analyzers, sync schedule (runs in the background)
+telemetry  com.amazon.ceviche                       # event tracking pipeline, remote configuration sync
+telemetry  com.amazon.diode                         # analysis service with location access
+telemetry  com.amazon.device.metrics                # metrics receiver
+telemetry  com.fireos.usagestats.proxy              # usage statistics proxy
+telemetry  com.fireos.arcus.proxy                   # remote configuration proxy (talks to Amazon on an idle stick)
+telemetry  com.amazon.aria                          # surveys and engagement prompts, reads app usage
+telemetry  com.amazon.hybridadidservice             # advertising ID service
+telemetry  com.amazon.tv.developer.dataservice      # content personalization opt-in and sync
+telemetry  com.amazon.device.sale.service           # promotions sync
+
+# Amazon's own screensavers and the ambient mode. They fetch pictures from Amazon's servers on an idle
+# stick. FireFrame has its own photo, so the TV just goes dark or to sleep as set in Fire TV's settings.
+screensaver com.amazon.ftv.screensaver              # Amazon's screensaver
+screensaver com.amazon.tv.ftvambient                # Ambient-TV
