@@ -186,9 +186,10 @@ public class HomeService extends AccessibilityService {
         CharSequence pkg = e.getPackageName();
         if (pkg == null) return;
         String p = pkg.toString();
-        if (p.equals(HUD_PACKAGE)) {
-            // Amazon's long-Home menu: cover it with FireFrame's own, unless that's turned off.
-            if (String.valueOf(e.getClassName()).contains("HudActivity") && "on".equals(Updater.prefs(this).getString("hud", QuickMenu.HUD_DEFAULT))) openHud();
+        if (p.equals(HUD_PACKAGE) && "on".equals(Updater.prefs(this).getString("hud", QuickMenu.HUD_DEFAULT))) {
+            // Amazon's long-Home menu: cover it with FireFrame's own. With the quick menu off, Fire TV
+            // Settings events go on below like any other app, so FireFrame's screen steps aside as before.
+            if (String.valueOf(e.getClassName()).contains("HudActivity")) openHud();
             return;
         }
         if (p.equals(AMAZON_HOME)) {
